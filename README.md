@@ -13,3 +13,33 @@ npm config set registry https://registry.npmmirror.com/
 npm config set ELECTRON_MIRROR https://npmmirror.com/mirrors/electron/
 ```
 或直接在用户目录下的.npmrc文件中配置镜像源
+
+## run-electron
+使用以下指令运行electron应用：
+```bash
+npm run start
+```
+
+[electron+vue应用配置](https://blog.csdn.net/weixin_44582045/article/details/133927098)(目前到第二步)
+
+## Customize configuration
+
+See [Vite Configuration Reference](https://vite.dev/config/).
+
+### Compile and Hot-Reload for Development
+
+```sh
+npm run dev
+```
+
+### Type-Check, Compile and Minify for Production
+
+```sh
+npm run build
+```
+
+### Lint with [ESLint](https://eslint.org/)
+
+```sh
+npm run lint
+```
