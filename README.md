@@ -43,3 +43,12 @@ npm run build
 ```sh
 npm run lint
 ```
+
+
+## 注：简洁启动-by wx
+```bash
+npm install
+npm install vue-router@4
+npm run build
+npm run dev
+```
