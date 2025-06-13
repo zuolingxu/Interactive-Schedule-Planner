@@ -55,6 +55,7 @@ npm install
 npm install vue-router@4
 npm install @tsparticles/vue3@3.0.1 tsparticles@3.8.1
 npm install @fortawesome/fontawesome-free
+npm install vuex@next
 npm run build
 npm run dev
 ```
@@ -76,7 +77,9 @@ npm run dev
 python backend.py
 ```
 
-## 二、如何体现交互性
+## 二、权限
+使用弹窗需要先开启通知+弹窗权限
+## 三、如何体现交互性
 1.对事项的标签筛选（五步搜索）
 2.语音输入
 3.虚拟形象
