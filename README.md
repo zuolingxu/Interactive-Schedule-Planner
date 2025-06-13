@@ -45,10 +45,38 @@ npm run lint
 ```
 
 
-## 注：简洁启动-by wx
+# 注：简洁启动-by wx
+### python 3.8及以上
+# 一、Windows
+## 1.搭建环境
+### 前端 vue
 ```bash
 npm install
 npm install vue-router@4
+npm install @tsparticles/vue3@3.0.1 tsparticles@3.8.1
+npm install @fortawesome/fontawesome-free
 npm run build
 npm run dev
 ```
+
+### 后端 python sqlite3
+```bash
+pip install flask flask-cors
+```
+
+## 2.启动
+### 前端
+```bash
+npm run build
+npm run dev
+```
+
+### 后端
+```bash
+python backend.py
+```
+
+## 二、如何体现交互性
+1.对事项的标签筛选（五步搜索）
+2.语音输入
+3.虚拟形象
