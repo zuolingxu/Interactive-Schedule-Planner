@@ -1,6 +1,7 @@
 import { createApp } from 'vue'
 import App from './App.vue'
 import router from './router'
+import store from "./store";
 
 import Particles from '@tsparticles/vue3'
 import { loadFull } from 'tsparticles'
@@ -18,6 +19,7 @@ app.use(Particles, {
 })
 
 app.use(router)
+app.use(store);
 app.mount('#app')
 
 // 也许下面是为了打包为exe用的？ 没看懂 -by wx

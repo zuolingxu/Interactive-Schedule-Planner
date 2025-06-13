@@ -6,7 +6,7 @@
       <div class="view-controls">
         <label class="square-switch">
           <input type="checkbox" v-model="isDayView" @change="toggleViewMode" />
-          <span class="slider">{{ isDayView ? "日视图" : "月视图" }}</span>
+          <span class="slider">{{ isDayView ? "返回" : "月视图" }}</span>
         </label>
         <button @click="handleCreateEvent">新建日程</button>
       </div>
@@ -70,6 +70,7 @@
 </template>
 
 <script>
+import { mapGetters, mapActions } from "vuex";
 import Sidebar from "../components/Sidebar.vue";
 import ParticleBackground from "../components/ParticleBackground.vue";
 import ScheduleForm from "../components/ScheduleForm.vue";
@@ -97,16 +98,14 @@ export default {
       isEditMode: false, // 是否为编辑模式
       formData: {}, // 表单初始数据
       isAuthModalVisible: false, // 控制注册或登录弹窗显示
-      userId: null, // 当前登录用户 ID
-      tasks: {
-        // 示例任务数据，实际数据可以从后端获取
-        "2025-06-01": ["完成报告", "开会"],
-        "2025-06-15": ["参加活动"],
-        "2025-06-20": ["提交作业", "健身"],
-      },
+      tasks: {}, // 从后端加载的任务数据
     };
   },
+  computed: {
+    ...mapGetters(["isLoggedIn", "userId"]), // 映射 Vuex 的登录状态和用户 ID
+  },
   methods: {
+    ...mapActions(["login"]), // 映射 Vuex 的 login 方法
     generateCalendar() {
       const firstDayOfMonth = new Date(this.currentYear, this.currentMonth - 1, 1);
       const lastDayOfMonth = new Date(this.currentYear, this.currentMonth, 0);
@@ -194,15 +193,16 @@ export default {
       return `${date.getFullYear()}年${date.getMonth() + 1}月${date.getDate()}日`;
     },
     handleCreateEvent() {
-      if (!this.userId) {
+      if (!this.isLoggedIn) {
         this.isAuthModalVisible = true; // 用户未登录时弹出注册或登录弹窗
       } else {
         this.openForm(false); // 用户已登录时打开新建日程表单
       }
     },
     handleLoginSuccess(userId) {
-      this.userId = userId; // 保存登录用户 ID
+      this.login(userId); // 更新全局登录状态
       this.isAuthModalVisible = false; // 关闭弹窗
+      this.fetchTasks(); // 登录成功后加载任务
     },
     closeAuthModal() {
       this.isAuthModalVisible = false;
@@ -227,43 +227,65 @@ export default {
     closeForm() {
       this.isFormVisible = false;
     },
+    fetchTasks() {
+      if (!this.isLoggedIn) {
+        this.isAuthModalVisible = true; // 未登录时弹出登录界面
+        return;
+      }
+
+      // 从后端获取任务数据
+      fetch(`http://127.0.0.1:5000/events/${this.userId}`)
+        .then((response) => response.json())
+        .then((data) => {
+          // 适配后端返回的 JSON 数据格式
+          this.tasks = data.reduce((acc, event) => {
+            const { time, event_name } = event;
+
+            if (time && event_name) { // 确保 time 和 event_name 存在
+              const date = time.split("T")[0];
+              if (!acc[date]) acc[date] = [];
+              acc[date].push(event_name);
+            }
+            return acc;
+          }, {});
+          this.generateCalendar(); // 重新生成日历
+        })
+        .catch((error) => {
+          console.error("加载任务失败：", error);
+        });
+    },
     createEvent(eventData) {
-      // 发送 POST 请求到后端
       fetch("http://127.0.0.1:5000/events", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({ ...eventData, user_id: this.userId }),
+        body: JSON.stringify({
+          ...eventData,
+          user_id: this.userId, // 添加当前用户 ID
+        }),
       })
         .then((response) => response.json())
         .then((data) => {
-          console.log("事件创建成功：", data);
+          if (data.message === "事件添加成功！") {
+            alert("日程创建成功！");
+            this.fetchTasks(); // 新建成功后重新加载任务
+            this.closeForm(); // 关闭表单
+          } else {
+            alert("日程创建失败：" + data.message);
+          }
         })
         .catch((error) => {
-          console.error("事件创建失败：", error);
-        });
-    },
-    updateEvent(eventData) {
-      // 发送 PUT 请求到后端
-      fetch(`http://127.0.0.1:5000/events/${eventData.id}`, {
-        method: "PUT",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(eventData),
-      })
-        .then((response) => response.json())
-        .then((data) => {
-          console.log("事件更新成功：", data);
-        })
-        .catch((error) => {
-          console.error("事件更新失败：", error);
+          console.error("创建日程失败：", error);
         });
     },
   },
   mounted() {
-    this.generateCalendar();
+    if (this.isLoggedIn) {
+      this.fetchTasks(); // 如果已登录，加载任务
+    } else {
+      this.isAuthModalVisible = true; // 未登录时弹出登录界面
+    }
   },
 };
 </script>

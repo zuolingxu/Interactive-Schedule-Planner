@@ -55,6 +55,7 @@ npm install
 npm install vue-router@4
 npm install @tsparticles/vue3@3.0.1 tsparticles@3.8.1
 npm install @fortawesome/fontawesome-free
+npm install vuex@next
 npm run build
 npm run dev
 ```

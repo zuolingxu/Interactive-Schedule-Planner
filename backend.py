@@ -97,11 +97,24 @@ def add_event():
 def get_events(user_id):
     conn = sqlite3.connect('schedule.db')
     cursor = conn.cursor()
-    cursor.execute('SELECT * FROM events WHERE user_id = ?', (user_id,))
+    cursor.execute('SELECT id, user_id, time, event_name, priority, tags FROM events WHERE user_id = ?', (user_id,))
     events = cursor.fetchall()
     conn.close()
 
-    return jsonify(events), 200
+    # 将事件转换为 JSON 格式
+    events_list = [
+        {
+            "id": event[0],
+            "user_id": event[1],
+            "time": event[2],
+            "event_name": event[3],
+            "priority": event[4],
+            "tags": event[5]
+        }
+        for event in events
+    ]
+
+    return jsonify(events_list), 200
 
 # 删除事件
 @app.route('/events/<int:event_id>', methods=['DELETE'])
