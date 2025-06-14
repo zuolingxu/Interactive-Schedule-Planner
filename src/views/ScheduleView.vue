@@ -126,8 +126,8 @@ export default {
       // 填充当前月份的天数
       currentDate = new Date(firstDayOfMonth);
       for (let day = 1; day <= daysInMonth; day++) {
-        const dateStr = currentDate.toISOString().split("T")[0];
-        week.push({
+          // 生成本地日期字符串（格式：YYYY-MM-DD）
+          const dateStr = `${this.currentYear}-${String(this.currentMonth).padStart(2, '0')}-${String(day).padStart(2, '0')}`;        week.push({
           date: new Date(currentDate),
           isCurrentMonth: true,
           tasks: this.tasks[dateStr] || [],
@@ -228,29 +228,20 @@ export default {
       this.isFormVisible = false;
     },
     fetchTasks() {
-      if (!this.isLoggedIn) {
-        this.isAuthModalVisible = true; // 未登录时弹出登录界面
-        return;
-      }
-
-      // 从后端获取任务数据
       fetch(`http://127.0.0.1:5000/events/${this.userId}`)
-        .then((response) => response.json())
-        .then((data) => {
-          // 适配后端返回的 JSON 数据格式
+        .then(response => response.json())
+        .then(data => {
           this.tasks = data.reduce((acc, event) => {
-            const { time, event_name } = event;
-
-            if (time && event_name) { // 确保 time 和 event_name 存在
-              const date = time.split("T")[0];
-              if (!acc[date]) acc[date] = [];
-              acc[date].push(event_name);
+            if (event.time && event.event_name) {
+              const dateKey = event.time.split('T')[0]; // 直接使用本地时间
+              if (!acc[dateKey]) acc[dateKey] = [];
+              acc[dateKey].push(event.event_name);
             }
             return acc;
           }, {});
-          this.generateCalendar(); // 重新生成日历
+          this.generateCalendar();
         })
-        .catch((error) => {
+        .catch(error => {
           console.error("加载任务失败：", error);
         });
     },
