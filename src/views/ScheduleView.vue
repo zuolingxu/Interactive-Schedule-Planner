@@ -26,16 +26,21 @@
         </div>
         <table class="calendar">
           <tbody>
-            <tr v-for="(week, weekIndex) in calendar" :key="weekIndex">
+            <tr v-for="week in calendar" :key="week[0].date">
               <td
-                v-for="(day, dayIndex) in week"
-                :key="dayIndex"
-                :class="{ 'current-day': isToday(day.date), 'other-month': !day.isCurrentMonth }"
+                v-for="day in week"
+                :key="day.date"
+                :class="{ 
+                  currentDay: isToday(day.date),
+                  'other-month': !day.isCurrentMonth
+                }"
                 @click="viewTasks(day.date)"
               >
-                <div class="date">{{ day.date.getDate() }}</div>
+                <div>{{ day.date.getDate() }}</div>
                 <ul class="tasks">
-                  <li v-for="(task, taskIndex) in day.tasks" :key="taskIndex">{{ task }}</li>
+                  <li v-for="task in day.tasks" :key="task.id">
+                    {{ task.event_name }}
+                  </li>
                 </ul>
               </td>
             </tr>
@@ -46,7 +51,22 @@
         <div class="day-view">
           <h2>{{ selectedDate ? formatDate(selectedDate) : "请选择日期" }}</h2>
           <ul v-if="selectedDate">
-            <li v-for="(task, index) in selectedTasks" :key="index">{{ task }}</li>
+            <li v-for="(task, index) in selectedTasks" :key="index">
+              <div>
+                <strong>事件名称：</strong> {{ task.event_name }}
+              </div>
+              <div>
+                <strong>时间：</strong> {{ task.time }}
+              </div>
+              <div>
+                <strong>优先级：</strong> {{ task.priority }}
+              </div>
+              <div>
+                <strong>标签：</strong> {{ task.tags }}
+              </div>
+              <button @click="editTask(task)">修改</button>
+              <button @click="deleteTask(task.id)">删除</button>
+            </li>
           </ul>
         </div>
       </div>
@@ -109,7 +129,7 @@ export default {
     generateCalendar() {
       const firstDayOfMonth = new Date(this.currentYear, this.currentMonth - 1, 1);
       const lastDayOfMonth = new Date(this.currentYear, this.currentMonth, 0);
-      const firstDayOfWeek = (firstDayOfMonth.getDay() + 6) % 7; // 调整为周一开始
+      const firstDayOfWeek = (firstDayOfMonth.getDay() + 6) % 7;
       const daysInMonth = lastDayOfMonth.getDate();
 
       const calendar = [];
@@ -117,20 +137,27 @@ export default {
       let currentDate = new Date(firstDayOfMonth);
 
       // 填充前面的空白天数
-      currentDate.setDate(currentDate.getDate() - firstDayOfWeek); // 回退到前一个月的最后几天
+      currentDate.setDate(currentDate.getDate() - firstDayOfWeek);
       for (let i = 0; i < firstDayOfWeek; i++) {
-        week.push({ date: new Date(currentDate), isCurrentMonth: false, tasks: [] });
+        const dateStr = this.formatDateKey(currentDate);
+        week.push({
+          date: new Date(currentDate),
+          dateStr: dateStr,
+          isCurrentMonth: false,
+          tasks: this.tasks[dateStr] || []
+        });
         currentDate.setDate(currentDate.getDate() + 1);
       }
 
       // 填充当前月份的天数
       currentDate = new Date(firstDayOfMonth);
       for (let day = 1; day <= daysInMonth; day++) {
-          // 生成本地日期字符串（格式：YYYY-MM-DD）
-          const dateStr = `${this.currentYear}-${String(this.currentMonth).padStart(2, '0')}-${String(day).padStart(2, '0')}`;        week.push({
+        const dateStr = this.formatDateKey(currentDate);
+        week.push({
           date: new Date(currentDate),
+          dateStr: dateStr,
           isCurrentMonth: true,
-          tasks: this.tasks[dateStr] || [],
+          tasks: this.tasks[dateStr] || []
         });
         currentDate.setDate(currentDate.getDate() + 1);
 
@@ -142,14 +169,25 @@ export default {
 
       // 填充后面的空白天数
       while (week.length < 7) {
-        week.push({ date: new Date(currentDate), isCurrentMonth: false, tasks: [] });
+        const dateStr = this.formatDateKey(currentDate);
+        week.push({
+          date: new Date(currentDate),
+          dateStr: dateStr,
+          isCurrentMonth: false,
+          tasks: this.tasks[dateStr] || []
+        });
         currentDate.setDate(currentDate.getDate() + 1);
       }
       if (week.length) calendar.push(week);
 
       this.calendar = calendar;
     },
+
+    formatDateKey(date) {
+      return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
+    },
     isToday(date) {
+      if (!date) return false;
       const today = new Date();
       return (
         date.getFullYear() === today.getFullYear() &&
@@ -158,11 +196,11 @@ export default {
       );
     },
     viewTasks(date) {
-    this.selectedDate = date; // 保持为 Date 对象
-    const dateStr = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
-    this.selectedTasks = this.tasks[dateStr] || [];
-    this.isDayView = true;
-    },
+  this.selectedDate = date; // 保持为 Date 对象
+  const dateStr = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
+  this.selectedTasks = this.tasks[dateStr] || []; // 获取完整的任务信息
+  this.isDayView = true;
+},
     formatDate(date) {
       if (!date) return "无日期";
       return `${date.getFullYear()}年${date.getMonth() + 1}月${date.getDate()}日`;
@@ -235,15 +273,23 @@ export default {
       fetch(`http://127.0.0.1:5000/events/${this.userId}`)
         .then(response => response.json())
         .then(data => {
-          this.tasks = data.reduce((acc, event) => {
+          // 修改数据存储结构
+          const tasksByDate = {};
+          data.forEach(event => {
             if (event.time && event.event_name) {
-              const dateKey = event.time.split('T')[0]; // 直接使用本地时间
-              if (!acc[dateKey]) acc[dateKey] = [];
-              acc[dateKey].push(event.event_name);
+              const dateKey = event.time.split('T')[0]; // 提取日期部分
+              if (!tasksByDate[dateKey]) tasksByDate[dateKey] = [];
+              tasksByDate[dateKey].push({
+                id: event.id,
+                event_name: event.event_name,
+                time: event.time,
+                priority: event.priority,
+                tags: event.tags
+              });
             }
-            return acc;
-          }, {});
-          this.generateCalendar();
+          });
+          this.tasks = tasksByDate; // 将任务按日期存储
+          this.generateCalendar(); // 数据加载完成后重新生成日历
         })
         .catch(error => {
           console.error("加载任务失败：", error);
@@ -273,6 +319,93 @@ export default {
         .catch((error) => {
           console.error("创建日程失败：", error);
         });
+    },
+    editTask(task) {
+      this.isEditMode = true;
+      this.formData = { ...task }; // 将任务信息填充到表单中
+      this.isFormVisible = true; // 显示表单
+    },
+    updateEvent(task) {
+      // 示例：弹出对话框让用户修改事件信息
+      const newEventName = prompt("请输入新的事件名称：", task.event_name);
+      if (newEventName) {
+        fetch(`http://127.0.0.1:5000/events/${task.id}`, {
+          method: "PUT",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            event_name: newEventName,
+            time: task.time,
+            priority: task.priority,
+            tags: task.tags,
+          }),
+        })
+          .then((response) => response.json())
+          .then((data) => {
+            if (data.message === "事件更新成功！") {
+              alert("事件已更新！");
+              this.fetchTasks(); // 重新加载任务
+            } else {
+              alert("更新失败：" + data.message);
+            }
+          })
+          .catch((error) => {
+            console.error("更新事件失败：", error);
+          });
+      }
+    },
+    deleteTask(taskId) {
+      if (confirm("确定要删除该事件吗？")) {
+        fetch(`http://127.0.0.1:5000/events/${taskId}`, {
+          method: "DELETE",
+        })
+          .then((response) => {
+            if (!response.ok) {
+              throw new Error('删除请求失败');
+            }
+            return response.json();
+          })
+          .then((data) => {
+            if (data.message === "事件删除成功！") {
+              // 找到包含该任务的日期
+              let foundDateStr = null;
+              for (const dateStr in this.tasks) {
+                const taskIndex = this.tasks[dateStr].findIndex(task => task.id === taskId);
+                if (taskIndex !== -1) {
+                  foundDateStr = dateStr;
+                  // 从数组中移除该任务
+                  this.tasks[dateStr].splice(taskIndex, 1);
+                  
+                  // 如果该日期没有任务了，删除该日期的键
+                  if (this.tasks[dateStr].length === 0) {
+                    delete this.tasks[dateStr];
+                  }
+                  break;
+                }
+              }
+              
+              // 更新当前显示的日期的任务列表
+              if (this.selectedDate) {
+                const selectedDateStr = this.formatDateKey(this.selectedDate);
+                if (foundDateStr === selectedDateStr) {
+                  this.selectedTasks = this.tasks[selectedDateStr] || [];
+                }
+              }
+              
+              // 重新生成日历视图
+              this.generateCalendar();
+              
+              alert("事件已删除！");
+            } else {
+              throw new Error(data.message || "删除失败");
+            }
+          })
+          .catch((error) => {
+            console.error("删除事件失败：", error);
+            alert("删除失败：" + error.message);
+          });
+      }
     },
   },
   mounted() {
@@ -459,6 +592,21 @@ button {
 }
 
 button:hover {
+  background-color: #1976d2;
+}
+
+.day-view button {
+  margin: 5px;
+  padding: 5px 10px;
+  font-size: 14px;
+  background-color: #2196f3;
+  color: white;
+  border: none;
+  border-radius: 5px;
+  cursor: pointer;
+}
+
+.day-view button:hover {
   background-color: #1976d2;
 }
 </style>
