@@ -158,10 +158,14 @@ export default {
       );
     },
     viewTasks(date) {
-      const dateStr = date.toISOString().split("T")[0];
-      this.selectedDate = date;
-      this.selectedTasks = this.tasks[dateStr] || [];
-      this.isDayView = true; // 切换到按天展示
+    this.selectedDate = date; // 保持为 Date 对象
+    const dateStr = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
+    this.selectedTasks = this.tasks[dateStr] || [];
+    this.isDayView = true;
+    },
+    formatDate(date) {
+      if (!date) return "无日期";
+      return `${date.getFullYear()}年${date.getMonth() + 1}月${date.getDate()}日`;
     },
     toggleSidebar() {
       this.isSidebarCollapsed = !this.isSidebarCollapsed;
