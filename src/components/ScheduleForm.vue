@@ -92,7 +92,11 @@ export default {
       };
 
       if (this.isEditMode) {
-        this.$emit("update-event", eventData);
+        // 确保包含原始任务ID
+        this.$emit("update-event", {
+          ...eventData,
+          id: this.initialData.id  // 添加任务ID
+        });
       } else {
         this.$emit("create-event", eventData);
       }

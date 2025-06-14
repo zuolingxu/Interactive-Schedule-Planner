@@ -322,38 +322,71 @@ export default {
     },
     editTask(task) {
       this.isEditMode = true;
-      this.formData = { ...task }; // 将任务信息填充到表单中
-      this.isFormVisible = true; // 显示表单
+      this.formData = { 
+        id: task.id,
+        event_name: task.event_name,
+        time: task.time,
+        priority: task.priority,
+        tags: task.tags
+      };
+      this.isFormVisible = true;
     },
     updateEvent(task) {
-      // 示例：弹出对话框让用户修改事件信息
-      const newEventName = prompt("请输入新的事件名称：", task.event_name);
-      if (newEventName) {
-        fetch(`http://127.0.0.1:5000/events/${task.id}`, {
-          method: "PUT",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            event_name: newEventName,
-            time: task.time,
-            priority: task.priority,
-            tags: task.tags,
-          }),
-        })
-          .then((response) => response.json())
-          .then((data) => {
-            if (data.message === "事件更新成功！") {
-              alert("事件已更新！");
-              this.fetchTasks(); // 重新加载任务
-            } else {
-              alert("更新失败：" + data.message);
-            }
-          })
-          .catch((error) => {
-            console.error("更新事件失败：", error);
-          });
+      if (!this.userId) {
+        console.error("用户ID未定义，请先登录");
+        return;
       }
+      
+      if (!task.id) {
+        console.error("任务ID未定义");
+        return;
+      }
+
+      fetch(`http://127.0.0.1:5000/events/${task.id}`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          ...task,
+          user_id: this.userId
+        }),
+      })
+        .then(response => {
+          if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+          }
+          return response.json();
+        })
+        .then(data => {
+          if (data.message === "事件更新成功！") {
+            // 更新本地任务数据
+            const dateKey = task.time.split('T')[0];
+            if (this.tasks[dateKey]) {
+              const index = this.tasks[dateKey].findIndex(t => t.id === task.id);
+              if (index !== -1) {
+                this.tasks[dateKey][index] = task;
+              }
+            }
+            
+            // 更新当前显示的日视图
+            if (this.isDayView && this.selectedDate) {
+              const currentDateKey = this.formatDateKey(this.selectedDate);
+              if (currentDateKey === dateKey) {
+                this.selectedTasks = this.tasks[currentDateKey] || [];
+              }
+            }
+            
+            // 重新生成日历视图
+            this.generateCalendar();
+            this.closeForm();
+          } else {
+            console.error("更新失败：", data.message);
+          }
+        })
+        .catch(error => {
+          console.error("更新事件失败：", error);
+        });
     },
     deleteTask(taskId) {
       if (confirm("确定要删除该事件吗？")) {
