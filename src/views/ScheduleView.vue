@@ -50,22 +50,22 @@
       <div v-else>
         <div class="day-view">
           <h2>{{ selectedDate ? formatDate(selectedDate) : "请选择日期" }}</h2>
-          <ul v-if="selectedDate">
-            <li v-for="(task, index) in selectedTasks" :key="index">
-              <div>
-                <strong>事件名称：</strong> {{ task.event_name }}
+          <ul v-if="selectedDate" class="task-list">
+            <li v-for="(task, index) in selectedTasks" :key="index" class="task-item">
+              <div class="task-time">
+                {{ formatTime(task.time) }}
               </div>
-              <div>
-                <strong>时间：</strong> {{ task.time }}
+              <div class="task-name">
+                {{ task.event_name }}
               </div>
-              <div>
-                <strong>优先级：</strong> {{ task.priority }}
+              <div class="task-meta">
+                <span class="priority">优先级: {{ task.priority }}</span>
+                <span class="tags">标签: {{ task.tags }}</span>
               </div>
-              <div>
-                <strong>标签：</strong> {{ task.tags }}
+              <div class="task-actions">
+                <button @click="editTask(task)">修改</button>
+                <button @click="deleteTask(task.id)">删除</button>
               </div>
-              <button @click="editTask(task)">修改</button>
-              <button @click="deleteTask(task.id)">删除</button>
             </li>
           </ul>
         </div>
@@ -196,11 +196,11 @@ export default {
       );
     },
     viewTasks(date) {
-  this.selectedDate = date; // 保持为 Date 对象
-  const dateStr = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
-  this.selectedTasks = this.tasks[dateStr] || []; // 获取完整的任务信息
-  this.isDayView = true;
-},
+      this.selectedDate = date; // 保持为 Date 对象
+      const dateStr = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
+      this.selectedTasks = this.tasks[dateStr] || []; // 获取完整的任务信息
+      this.isDayView = true;
+    },
     formatDate(date) {
       if (!date) return "无日期";
       return `${date.getFullYear()}年${date.getMonth() + 1}月${date.getDate()}日`;
@@ -231,6 +231,11 @@ export default {
         this.generateCalendar(); // 切换回月视图时重新生成日历
       }
     },
+    formatTime(timeString) {
+      if (!timeString) return '';
+      const date = new Date(timeString);
+      return `${date.getHours()}:${String(date.getMinutes()).padStart(2, '0')}`;
+    },
     formatDate(date) {
       return `${date.getFullYear()}年${date.getMonth() + 1}月${date.getDate()}日`;
     },
@@ -245,6 +250,19 @@ export default {
       this.login(userId); // 更新全局登录状态
       this.isAuthModalVisible = false; // 关闭弹窗
       this.fetchTasks(); // 登录成功后加载任务
+    },
+    refreshScheduleView() {
+      return this.fetchTasks()
+        .then(() => {
+          if (this.isDayView && this.selectedDate) {
+            const dateStr = this.formatDateKey(this.selectedDate);
+            this.selectedTasks = this.tasks[dateStr] || [];
+          }
+        })
+        .catch(error => {
+          console.error("刷新视图失败：", error);
+          throw error; // 重新抛出错误
+        });
     },
     closeAuthModal() {
       this.isAuthModalVisible = false;
@@ -270,14 +288,18 @@ export default {
       this.isFormVisible = false;
     },
     fetchTasks() {
-      fetch(`http://127.0.0.1:5000/events/${this.userId}`)
-        .then(response => response.json())
+      return fetch(`http://127.0.0.1:5000/events/${this.userId}`)
+        .then(response => {
+          if (!response.ok) {
+            throw new Error('网络响应不正常');
+          }
+          return response.json();
+        })
         .then(data => {
-          // 修改数据存储结构
           const tasksByDate = {};
           data.forEach(event => {
             if (event.time && event.event_name) {
-              const dateKey = event.time.split('T')[0]; // 提取日期部分
+              const dateKey = event.time.split('T')[0];
               if (!tasksByDate[dateKey]) tasksByDate[dateKey] = [];
               tasksByDate[dateKey].push({
                 id: event.id,
@@ -288,11 +310,13 @@ export default {
               });
             }
           });
-          this.tasks = tasksByDate; // 将任务按日期存储
-          this.generateCalendar(); // 数据加载完成后重新生成日历
+          this.tasks = tasksByDate;
+          this.generateCalendar();
+          return data; // 返回数据以便链式调用
         })
         .catch(error => {
           console.error("加载任务失败：", error);
+          throw error; // 重新抛出错误
         });
     },
     createEvent(eventData) {
@@ -303,21 +327,24 @@ export default {
         },
         body: JSON.stringify({
           ...eventData,
-          user_id: this.userId, // 添加当前用户 ID
+          user_id: this.userId,
         }),
       })
         .then((response) => response.json())
         .then((data) => {
           if (data.message === "事件添加成功！") {
             alert("日程创建成功！");
-            this.fetchTasks(); // 新建成功后重新加载任务
-            this.closeForm(); // 关闭表单
+            return this.refreshScheduleView(); // 使用改进后的刷新方法
           } else {
-            alert("日程创建失败：" + data.message);
+            throw new Error(data.message || "创建失败");
           }
+        })
+        .then(() => {
+          this.closeForm();
         })
         .catch((error) => {
           console.error("创建日程失败：", error);
+          alert("日程创建失败：" + error.message);
         });
     },
     editTask(task) {
@@ -332,13 +359,8 @@ export default {
       this.isFormVisible = true;
     },
     updateEvent(task) {
-      if (!this.userId) {
-        console.error("用户ID未定义，请先登录");
-        return;
-      }
-      
-      if (!task.id) {
-        console.error("任务ID未定义");
+      if (!this.userId || !task.id) {
+        console.error("缺少必要信息");
         return;
       }
 
@@ -353,93 +375,43 @@ export default {
         }),
       })
         .then(response => {
-          if (!response.ok) {
-            throw new Error(`HTTP error! status: ${response.status}`);
-          }
+          if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
           return response.json();
         })
         .then(data => {
-          if (data.message === "事件更新成功！") {
-            // 更新本地任务数据
-            const dateKey = task.time.split('T')[0];
-            if (this.tasks[dateKey]) {
-              const index = this.tasks[dateKey].findIndex(t => t.id === task.id);
-              if (index !== -1) {
-                this.tasks[dateKey][index] = task;
-              }
-            }
-            
-            // 更新当前显示的日视图
-            if (this.isDayView && this.selectedDate) {
-              const currentDateKey = this.formatDateKey(this.selectedDate);
-              if (currentDateKey === dateKey) {
-                this.selectedTasks = this.tasks[currentDateKey] || [];
-              }
-            }
-            
-            // 重新生成日历视图
-            this.generateCalendar();
-            this.closeForm();
-          } else {
-            console.error("更新失败：", data.message);
-          }
+          if (data.message !== "事件更新成功！") throw new Error(data.message);
+          return this.refreshScheduleView(); // 使用改进后的刷新方法
+        })
+        .then(() => {
+          this.closeForm();
         })
         .catch(error => {
           console.error("更新事件失败：", error);
         });
     },
+
     deleteTask(taskId) {
-      if (confirm("确定要删除该事件吗？")) {
-        fetch(`http://127.0.0.1:5000/events/${taskId}`, {
-          method: "DELETE",
+      if (!confirm("确定要删除该事件吗？")) return;
+
+      fetch(`http://127.0.0.1:5000/events/${taskId}`, {
+        method: "DELETE",
+      })
+        .then(response => {
+          if (!response.ok) throw new Error('删除请求失败');
+          return response.json();
         })
-          .then((response) => {
-            if (!response.ok) {
-              throw new Error('删除请求失败');
-            }
-            return response.json();
-          })
-          .then((data) => {
-            if (data.message === "事件删除成功！") {
-              // 找到包含该任务的日期
-              let foundDateStr = null;
-              for (const dateStr in this.tasks) {
-                const taskIndex = this.tasks[dateStr].findIndex(task => task.id === taskId);
-                if (taskIndex !== -1) {
-                  foundDateStr = dateStr;
-                  // 从数组中移除该任务
-                  this.tasks[dateStr].splice(taskIndex, 1);
-                  
-                  // 如果该日期没有任务了，删除该日期的键
-                  if (this.tasks[dateStr].length === 0) {
-                    delete this.tasks[dateStr];
-                  }
-                  break;
-                }
-              }
-              
-              // 更新当前显示的日期的任务列表
-              if (this.selectedDate) {
-                const selectedDateStr = this.formatDateKey(this.selectedDate);
-                if (foundDateStr === selectedDateStr) {
-                  this.selectedTasks = this.tasks[selectedDateStr] || [];
-                }
-              }
-              
-              // 重新生成日历视图
-              this.generateCalendar();
-              
-              alert("事件已删除！");
-            } else {
-              throw new Error(data.message || "删除失败");
-            }
-          })
-          .catch((error) => {
-            console.error("删除事件失败：", error);
-            alert("删除失败：" + error.message);
-          });
-      }
-    },
+        .then(data => {
+          if (data.message !== "事件删除成功！") throw new Error(data.message);
+          return this.refreshScheduleView();
+        })
+        .then(() => {
+          alert("事件已删除！");
+        })
+        .catch(error => {
+          console.error("删除事件失败：", error);
+          alert("删除失败：" + error.message);
+        });
+    }
   },
   mounted() {
     if (this.isLoggedIn) {
@@ -642,4 +614,72 @@ button:hover {
 .day-view button:hover {
   background-color: #1976d2;
 }
+
+.day-view {
+  text-align: center;
+  max-width: 800px;
+  margin: 0 auto;
+}
+
+.task-list {
+  list-style: none;
+  padding: 0;
+  margin: 20px 0;
+}
+
+.task-item {
+  display: flex;
+  align-items: center;
+  padding: 12px 15px;
+  margin-bottom: 10px;
+  background-color: rgba(255, 255, 255, 0.1);
+  border-radius: 8px;
+}
+
+.task-time {
+  width: 80px;
+  font-size: 16px;
+  text-align: center;
+  color: #ddd;
+}
+
+.task-name {
+  flex: 1;
+  font-size: 18px;
+  padding: 0 15px;
+  text-align: left;
+  word-break: break-word;
+}
+
+.task-meta {
+  width: 150px;
+  font-size: 12px;
+  color: #aaa;
+  display: flex;
+  flex-direction: column;
+}
+
+.task-meta span {
+  margin: 2px 0;
+}
+
+.task-actions {
+  width: 120px;
+  display: flex;
+  justify-content: flex-end;
+}
+
+.task-actions button {
+  margin: 0 5px;
+  padding: 5px 8px;
+  font-size: 12px;
+}
+
+.day-view h2 {
+  font-size: 1.5em;
+  margin-bottom: 20px;
+  color: #fff;
+}
+
 </style>
+
