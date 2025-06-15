@@ -102,6 +102,7 @@ export default {
       this.isLoginMode = !this.isLoginMode
     },
     closeModal() {
+      window.showMessage('先注册再使用哦！', 5000,1,true);
       this.$emit('close-modal')
     }
   }

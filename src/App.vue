@@ -19,7 +19,6 @@
 import { mapGetters, mapActions } from 'vuex'
 import AuthModal from './components/AuthModal.vue'
 import Live2DWidget from './components/VirtualImage.vue';
-
 export default {
   name: 'App',
   components: {
