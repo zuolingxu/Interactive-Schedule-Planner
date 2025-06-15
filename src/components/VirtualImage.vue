@@ -84,7 +84,7 @@ export default {
        callback: async () => {
           const message = await randomReminder();
           if (message) {
-            window.showMessage(message, 5000, 0, true);
+            window.showMessage(message, 5000, 10, true);
           } else {
             window.showMessage('没有可用的随机消息', 5000, 10, true);
           }
@@ -101,7 +101,7 @@ export default {
      }
           const plan = await checkPlan();
           if (plan) {
-            window.showMessage(`最近的日程: ${plan.title} - ${plan.time}`, 5000, 10, true);
+            window.showMessage(`最近的日程: ${plan}`, 5000, 10, true);
           } else {
             window.showMessage('没有最近的日程', 5000, 0, true);
           }
