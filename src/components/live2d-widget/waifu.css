@@ -107,14 +107,14 @@
 #waifu-tool svg {
 	cursor: pointer;
 	display: block;
-	fill: #99ff00;
+	fill: #c4c4c4;
 	height: 30px;
 	transition: fill .3s;
 	position: relative;
 }
 
 #waifu-tool svg:hover {
-	fill: #ff0000;
+	fill: #0e60c9;
 }
 
 #waifu-tool svg:hover::after {
