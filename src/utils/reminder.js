@@ -18,22 +18,35 @@ export function sendNotification(title, options) {
   }
 }
 
-/**
- * 设置定时提醒
- * @param {Date} targetTime - 任务的目标时间
- * @param {string} title - 通知标题
- * @param {string} body - 通知内容
- */
+// 存储所有定时器，以便页面卸载时清理
+const timers = new Set();
+
 export function setReminder(targetTime, title, body) {
   const now = new Date();
   const timeDifference = targetTime - now;
 
   if (timeDifference > 0) {
-    setTimeout(() => {
+    const timer = setTimeout(() => {
       sendNotification(title, { body });
+      timers.delete(timer);
     }, timeDifference);
-    console.log(`提醒已设置，将在 ${timeDifference / 1000 / 60} 分钟后触发`);
+    
+    timers.add(timer);
+    console.log(`提醒已设置，将在 ${Math.round(timeDifference / 1000 / 60)} 分钟后触发`);
+    
+    // 返回取消函数
+    return () => {
+      clearTimeout(timer);
+      timers.delete(timer);
+    };
   } else {
     console.log("目标时间已过，无法设置提醒");
+    return null;
   }
 }
+
+// 页面卸载时清除所有定时器
+window.addEventListener('beforeunload', () => {
+  timers.forEach(timer => clearTimeout(timer));
+  timers.clear();
+});

@@ -1,5 +1,5 @@
 ﻿<template>
-  <vue-particles id="tsparticles" :options="particlesOptions" />
+  <vue-particles id="tsparticles" :options="particlesOptions" @particlesLoaded="onParticlesLoaded" />
 </template>
 
 <script>
@@ -30,7 +30,7 @@ export default {
               duration: 0.4
             },
             push: {
-              quantity: 4
+              quantity: 4 // 每次点击增加的粒子数
             }
           }
         },
@@ -46,15 +46,13 @@ export default {
           move: {
             enable: true,
             speed: 1,
-            // random: true,
-            // outModes: 'bounce'
             direction: 'none',
             random: false,
             straight: false,
             outModes: { default: 'out' }
           },
           number: {
-            value: 100, // 粒子数量
+            value: 100,
             density: {
               enable: true,
               area: 800
@@ -65,15 +63,82 @@ export default {
             random: false
           },
           shape: {
-            type: 'circle' // 粒子形状为圆形
+            type: 'circle'
           },
           size: {
-            value: { min: 1, max: 3 }, // 粒子大小范围
+            value: { min: 1, max: 3 },
             random: true
           }
         },
         detectRetina: true
+      },
+      particlesInstance: null,
+      animationInterval: null,
+      baseMaxParticles: 100, // 基础最大粒子数
+      currentMaxParticles: 100, // 当前最大粒子数(会随点击增加)
+      minParticles: 30 // 最小粒子数
+    }
+  },
+  methods: {
+    onParticlesLoaded(instance) {
+      this.particlesInstance = instance;
+      this.startParticleAnimation();
+      
+      instance.particles.onCountChange = (count) => {
+        if (count > this.currentMaxParticles) {
+          this.currentMaxParticles = count;
+        }
+      };
+    },
+    startParticleAnimation() {
+      if (this.animationInterval) {
+        clearInterval(this.animationInterval);
       }
+      
+      let currentParticles = this.currentMaxParticles;
+      const decreaseInterval = 1000; // 每次减少的间隔时间(毫秒)
+      let isDecreasing = true;
+      
+      this.animationInterval = setInterval(() => {
+        if (isDecreasing) {
+          // 每次只减少1个粒子
+          if (currentParticles > this.minParticles) {
+            currentParticles--;
+          } else {
+            // 达到最小值后开始增加
+            isDecreasing = false;
+          }
+        } else {
+          // 增加到最大值
+          if (currentParticles < this.currentMaxParticles) {
+            currentParticles++;
+          } else {
+            // 达到最大值后开始减少
+            isDecreasing = true;
+            
+            // 如果当前最大值比基础值大，则缓慢恢复到基础值
+            if (this.currentMaxParticles > this.baseMaxParticles) {
+              this.currentMaxParticles = Math.max(
+                this.baseMaxParticles,
+                this.currentMaxParticles - 1
+              );
+            }
+          }
+        }
+        
+        // 更新粒子数量
+        if (this.particlesInstance) {
+          this.particlesInstance.options.particles.number.value = currentParticles;
+        }
+      }, decreaseInterval);
+    }
+  },
+  beforeDestroy() {
+    if (this.animationInterval) {
+      clearInterval(this.animationInterval);
+    }
+    if (this.particlesInstance) {
+      this.particlesInstance.destroy();
     }
   }
 }

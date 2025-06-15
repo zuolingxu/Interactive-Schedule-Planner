@@ -6,6 +6,7 @@ import HomeView from '../views/HomeView.vue'
 import ScheduleView from '../views/ScheduleView.vue'
 import FocusView from '../views/FocusView.vue'
 import NotFound from '../views/NotFound.vue'
+import HelperView from '../views/HelperView.vue'; // 新增小助手模块视图
 
 // 定义路由表
 const routes = [
@@ -23,6 +24,11 @@ const routes = [
     path: '/focus',
     name: 'Focus',
     component: FocusView
+  },
+  {
+    path: '/helper', // 新增小助手模块路由
+    name: 'Helper',
+    component: HelperView
   },
   {
     path: '/:pathMatch(.*)*',

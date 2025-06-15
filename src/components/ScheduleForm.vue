@@ -1,7 +1,8 @@
 ﻿<template>
   <div class="schedule-form">
     <div class="form-container">
-      <h2>{{ isEditMode ? "修改日程" : "新建日程" }}</h2>
+      <!-- 动态标题 -->
+      <h2 class="form-title">{{ isEditMode ? "修改日程" : "新建日程" }}</h2>
       <form @submit.prevent="handleSubmit">
         <div class="form-group">
           <label for="event-name">事件名称</label>
@@ -85,12 +86,19 @@ export default {
       return `${year}-${month}-${day}T${hours}:${minutes}`;
     },
     handleSubmit() {
+      const eventData = {
+        ...this.formData,
+        time: this.formData.time, // 使用 local 时间
+      };
+
       if (this.isEditMode) {
-        // 编辑模式：发送 PUT 请求
-        this.$emit("update-event", this.formData);
+        // 确保包含原始任务ID
+        this.$emit("update-event", {
+          ...eventData,
+          id: this.initialData.id  // 添加任务ID
+        });
       } else {
-        // 新建模式：发送 POST 请求
-        this.$emit("create-event", this.formData);
+        this.$emit("create-event", eventData);
       }
       this.closeForm();
     },
@@ -102,20 +110,34 @@ export default {
 </script>
 
 <style scoped>
+/* 表单容器样式 */
 .schedule-form {
+  display: flex;
+  justify-content: center;
+  align-items: center;
   position: fixed;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
-  background: white;
-  padding: 20px;
-  border-radius: 8px;
-  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(0, 0, 0, 0.5); /* 半透明背景 */
   z-index: 1000;
 }
 
 .form-container {
-  width: 300px;
+  background-color: #fdf6e3; /* 纸黄色背景 */
+  border-radius: 12px; /* 圆角 */
+  padding: 20px;
+  width: 400px;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2); /* 阴影效果 */
+}
+
+.form-title {
+  text-align: center;
+  font-size: 20px;
+  font-weight: bold;
+  margin-bottom: 20px;
+  color: #333;
 }
 
 .form-group {
@@ -126,6 +148,7 @@ label {
   display: block;
   margin-bottom: 5px;
   font-weight: bold;
+  color: #555;
 }
 
 input,
@@ -136,6 +159,7 @@ button {
   margin-bottom: 10px;
   border: 1px solid #ccc;
   border-radius: 4px;
+  font-size: 14px;
 }
 
 button {
@@ -143,12 +167,14 @@ button {
 }
 
 button[type="submit"] {
-  background-color: #2196f3;
+  background-color: #4caf50;
   color: white;
+  border: none;
 }
 
 button[type="button"] {
   background-color: #f44336;
   color: white;
+  border: none;
 }
 </style>
