@@ -69,6 +69,7 @@
                 <span class="tags">标签: {{ task.tags }}</span>
               </div>
               <div class="task-actions">
+                <button @click="showReminderModal(task)">提醒</button>
                 <button @click="editTask(task)">修改</button>
                 <button @click="deleteTask(task.id)">删除</button>
               </div>
@@ -91,6 +92,13 @@
         @login-success="handleLoginSuccess"
         @close-modal="closeAuthModal"
       />
+      <!-- 提醒设置弹窗 -->
+      <ReminderModal 
+        v-if="showReminder"
+        :task="selectedTaskForReminder"
+        :isVisible="showReminder"
+        @close="closeReminderModal"
+      />
     </div>
   </div>
 </template>
@@ -101,6 +109,8 @@ import Sidebar from "../components/Sidebar.vue";
 import ParticleBackground from "../components/ParticleBackground.vue";
 import ScheduleForm from "../components/ScheduleForm.vue";
 import AuthModal from "../components/AuthModal.vue";
+import ReminderModal from '@/components/ReminderModal.vue';
+import { requestNotificationPermission } from '@/utils/reminder';
 
 export default {
   name: "ScheduleView",
@@ -109,6 +119,7 @@ export default {
     ParticleBackground,
     ScheduleForm,
     AuthModal,
+    ReminderModal,
   },
   data() {
     return {
@@ -127,6 +138,8 @@ export default {
       tasks: {}, // 从后端加载的任务数据
       selectedTag: '', // 当前选中的标签
       uniqueTags: [],  // 存储所有不重复的标签
+      showReminder: false,
+      selectedTaskForReminder: null,
     };
   },
   computed: {
@@ -480,6 +493,15 @@ export default {
       // 计算属性会自动更新，无需额外操作
       this.$forceUpdate();
     },
+
+    // 定时器功能
+    showReminderModal(task) {
+      this.selectedTaskForReminder = task;
+      this.showReminder = true;
+    },
+    closeReminderModal() {
+      this.showReminder = false;
+    }
   },
   mounted() {
     if (this.isLoggedIn) {
@@ -487,6 +509,8 @@ export default {
     } else {
       this.isAuthModalVisible = true; // 未登录时弹出登录界面
     }
+
+    requestNotificationPermission();
   },
 };
 </script>
@@ -759,6 +783,23 @@ button:hover {
   background-color: #333;
   color: white;
   border: 1px solid #555;
+}
+
+.task-actions {
+  width: 220px; /* 增加宽度以容纳新按钮 */
+  display: flex;
+  justify-content: flex-end;
+}
+
+.task-actions button {
+  margin: 0 5px;
+  padding: 5px 8px;
+  font-size: 12px;
+}
+
+/* 提醒按钮特殊样式 */
+.task-actions button:nth-child(3) {
+  background-color: #f39c12;
 }
 
 </style>
