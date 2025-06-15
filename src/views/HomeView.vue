@@ -62,6 +62,9 @@ export default {
 </script>
 
 <style scoped>
+
+@import url('https://fonts.googleapis.com/css2?family=Ma+Shan+Zheng&family=ZCOOL+QingKe+HuangYou&family=ZCOOL+XiaoWei&display=swap');
+
 .home-page {
   display: flex;
   height: 100vh;
@@ -87,7 +90,6 @@ export default {
   padding-top: 15vh; /* 添加顶部内边距，使内容下移 */
 }
 
-@import url('https://fonts.googleapis.com/css2?family=Ma+Shan+Zheng&family=ZCOOL+QingKe+HuangYou&family=ZCOOL+XiaoWei&display=swap');
 .product-name h1 {
   font-size: 4rem; /* 增大字号 */
   font-weight: bold;

@@ -111,6 +111,7 @@ import ScheduleForm from "../components/ScheduleForm.vue";
 import AuthModal from "../components/AuthModal.vue";
 import ReminderModal from '@/components/ReminderModal.vue';
 import { requestNotificationPermission } from '@/utils/reminder';
+import backendService from '@/services/BackendService';
 
 export default {
   name: "ScheduleView",
@@ -327,68 +328,23 @@ export default {
       this.isFormVisible = false;
     },
     fetchTasks() {
-      return fetch(`http://127.0.0.1:5000/events/${this.userId}`)
-        .then(response => {
-          if (!response.ok) {
-            throw new Error('网络响应不正常');
-          }
-          return response.json();
-        })
+      return backendService.fetchEvents(this.userId)
         .then(data => {
-          const tasksByDate = {};
-          data.forEach(event => {
-            if (event.time && event.event_name) {
-              const dateKey = event.time.split('T')[0];
-              if (!tasksByDate[dateKey]) tasksByDate[dateKey] = [];
-              tasksByDate[dateKey].push({
-                id: event.id,
-                event_name: event.event_name,
-                time: event.time,
-                priority: event.priority,
-                tags: event.tags
-              });
-            }
-          });
-          this.tasks = tasksByDate;
+          this.tasks = data;
           this.generateCalendar();
           this.extractUniqueTags(); 
-          return data; // 返回数据以便链式调用
+          return data; // 返回处理后的任务数据
         })
-        .catch(error => {
-          console.error("加载任务失败：", error);
-          throw error; // 重新抛出错误
-        });
     },
     createEvent(eventData) {
       // 确保所有字段都有值
-      const processedData = {
-        event_name: eventData.event_name || "",
-        time: eventData.time || `${this.formatDateKey(new Date())}T00:00:00`,
-        priority: eventData.priority || "2",
-        tags: eventData.tags || "无", // 确保tags不为null/undefined
-        user_id: this.userId
-      };
-      fetch("http://127.0.0.1:5000/events", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          ...eventData,
-          user_id: this.userId,
-        }),
-      })
-        .then((response) => response.json())
-        .then((data) => {
-          if (data.message === "事件添加成功！") {
-            alert("日程创建成功！");
-            return this.refreshScheduleView(); // 使用改进后的刷新方法
-          } else {
-            throw new Error(data.message || "创建失败");
-          }
+      backendService.createEvent(eventData, this.userId)
+        .then(() => {
+          alert("日程创建成功！");
+          return this.refreshScheduleView();
         })
         .then(() => {
-          this.extractUniqueTags(); // 刷新标签列表
+          this.extractUniqueTags();
         })
         .then(() => {
           this.closeForm();
@@ -398,6 +354,44 @@ export default {
           alert("日程创建失败：" + error.message);
         });
     },
+
+    updateEvent(task) {
+      if (!this.userId || !task.id) {
+        console.error("缺少必要信息");
+        return;
+      }
+      // 保持原有时间格式，不转换
+      backendService.updateEvent(task, this.userId)
+        .then(() => {
+          return this.refreshScheduleView();
+        })
+        .then(() => {
+          this.extractUniqueTags();
+        })
+        .then(() => {
+          this.closeForm();
+        })
+        .catch(error => {
+          console.error("更新事件失败：", error);
+          alert("更新事件失败：" + error.message);
+        });
+    },
+
+    deleteTask(taskId) {
+      if (!confirm("确定要删除该事件吗？")) return;
+      backendService.deleteEvent(taskId)
+        .then(() => {
+          return this.refreshScheduleView();
+        })
+        .then(() => {
+          alert("事件已删除！");
+        })
+        .catch(error => {
+          console.error("删除事件失败：", error);
+          alert("删除失败：" + error.message);
+        });
+    },
+    // 编辑卡片
     editTask(task) {
       this.isEditMode = true;
       this.formData = { 
@@ -408,70 +402,6 @@ export default {
         tags: task.tags
       };
       this.isFormVisible = true;
-    },
-    updateEvent(task) {
-      if (!this.userId || !task.id) {
-        console.error("缺少必要信息");
-        return;
-      }
-      // 保持原有时间格式，不转换
-      const processedData = {
-        event_name: task.event_name || "",
-        time: task.time, // 直接使用原有时间，不转换
-        priority: task.priority || "2",
-        tags: task.tags || "无",
-        user_id: this.userId
-      };
-      fetch(`http://127.0.0.1:5000/events/${task.id}`, {
-        method: "PUT",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          ...task,
-          user_id: this.userId
-        }),
-      })
-        .then(response => {
-          if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
-          return response.json();
-        })
-        .then(data => {
-          if (data.message !== "事件更新成功！") throw new Error(data.message);
-          return this.refreshScheduleView(); // 使用改进后的刷新方法
-        })
-        .then(() => {
-          this.extractUniqueTags(); // 刷新标签列表
-        })
-        .then(() => {
-          this.closeForm();
-        })
-        .catch(error => {
-          console.error("更新事件失败：", error);
-        });
-    },
-
-    deleteTask(taskId) {
-      if (!confirm("确定要删除该事件吗？")) return;
-
-      fetch(`http://127.0.0.1:5000/events/${taskId}`, {
-        method: "DELETE",
-      })
-        .then(response => {
-          if (!response.ok) throw new Error('删除请求失败');
-          return response.json();
-        })
-        .then(data => {
-          if (data.message !== "事件删除成功！") throw new Error(data.message);
-          return this.refreshScheduleView();
-        })
-        .then(() => {
-          alert("事件已删除！");
-        })
-        .catch(error => {
-          console.error("删除事件失败：", error);
-          alert("删除失败：" + error.message);
-        });
     },
     // 提取所有唯一标签
     extractUniqueTags() {
