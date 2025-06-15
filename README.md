@@ -52,3 +52,5 @@ npm install vue-router@4
 npm run build
 npm run dev
 ```
+
+注：本项目使用的模型仅用于展示。

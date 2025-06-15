@@ -4,7 +4,7 @@ export default {
  props: {
    live2dPath: {
      type: String,
-     default: '/src/components/live2d-widget/dist/',
+     default: '/src/components/live2d-widget/',
    }
  },
  methods: {
@@ -42,18 +42,37 @@ export default {
        this.loadExternalResource(this.live2dPath + 'waifu.css', 'css'),
        this.loadExternalResource(this.live2dPath + 'waifu-tips.js', 'js'),
      ]);
-
-
-     initWidget({
-       waifuPath: this.live2dPath + 'waifu-tips.json',
-       // cdnPath: '/src/components/modules/wanko/runtime',
-       cdnPath: 'https://fastly.jsdelivr.net/gh/fghrsh/live2d_api/',
+     console.log('Live2D Widget resources loaded successfully');
+     const instances = await initWidget({
+       modelPath: '/src/components/models/22',
+       modelSetting: 'index.json',
        cubism2Path: this.live2dPath + 'live2d.min.js',
        cubism5Path: 'https://cubism.live2d.com/sdk-web/cubismcore/live2dcubismcore.min.js',
        tools: ['hitokoto', 'asteroids', 'switch-model', 'switch-texture', 'photo', 'info', 'quit'],
-       logLevel: 'warn',
        drag: false,
      });
+     console.log('Live2D Widget resources loaded successfully');
+
+     // example of changeTool API
+     window.changeTool(instances.ToolsManager, 1313, {
+       name: "tester",
+       icon: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 384 512"><!--! Font Awesome Free 6.7.2 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2024 Fonticons, Inc. --><path d="M342.6 150.6c12.5-12.5 12.5-32.8 0-45.3s-32.8-12.5-45.3 0L192 210.7 86.6 105.4c-12.5-12.5-32.8-12.5-45.3 0s-12.5 32.8 0 45.3L146.7 256 41.4 361.4c-12.5 12.5-12.5 32.8 0 45.3s32.8 12.5 45.3 0L192 301.3 297.4 406.6c12.5 12.5 32.8 12.5 45.3 0s12.5-32.8 0-45.3L237.3 256 342.6 150.6z"/></svg>',
+       callback: async () => { }
+     });
+
+     // window.addTool(instances.ToolsManager, 1,{
+     //   name: "tester",
+     //   icon: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 384 512"><!--! Font Awesome Free 6.7.2 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2024 Fonticons, Inc. --><path d="M342.6 150.6c12.5-12.5 12.5-32.8 0-45.3s-32.8-12.5-45.3 0L192 210.7 86.6 105.4c-12.5-12.5-32.8-12.5-45.3 0s-12.5 32.8 0 45.3L146.7 256 41.4 361.4c-12.5 12.5-12.5 32.8 0 45.3s32.8 12.5 45.3 0L192 301.3 297.4 406.6c12.5 12.5 32.8 12.5 45.3 0s12.5-32.8 0-45.3L237.3 256 342.6 150.6z"/></svg>',
+     //   callback: async () => { }
+     // })
+
+     // window.removeTool(instances.ToolsManager, 2);
+
+     console.log('Live2DTool changed successfully');
+
+     // example of showMessage API
+     window.showMessage('Live2D Widget is ready!',5000,0,true);
+
    },
  },
  mounted() {
