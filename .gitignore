@@ -23,8 +23,9 @@ coverage
 .idea
 *.suo
 *.ntvs*
-*.njsproj
+*.njsprojs
 *.sln
 *.sw?
 
-*.tsbuildinfo
+*.tsbuildinfos
+schedule.db

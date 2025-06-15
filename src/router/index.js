@@ -1,4 +1,5 @@
 ﻿import { createRouter, createWebHistory } from 'vue-router'
+import store from '../store' // 引入 Vuex，用于检查登录状态
 
 // 导入视图组件
 import HomeView from '../views/HomeView.vue'
@@ -34,6 +35,16 @@ const routes = [
 const router = createRouter({
   history: createWebHistory(),
   routes
+})
+
+// 路由守卫：检查登录状态
+router.beforeEach((to, from, next) => {
+  if (to.name !== 'Home' && !store.getters.isLoggedIn) {
+    store.commit('setShowAuthModal', true) // 设置全局状态以显示注册弹窗
+    next({ name: 'Home' }) // 跳转到主页
+  } else {
+    next() // 继续导航
+  }
 })
 
 export default router
