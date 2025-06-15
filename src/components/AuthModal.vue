@@ -32,6 +32,7 @@
 
 <script>
 import { mapActions } from 'vuex'
+import backendService from '@/services/BackendService';
 
 export default {
   name: 'AuthModal',
@@ -52,50 +53,20 @@ export default {
   },
   methods: {
     ...mapActions(['login']), // 映射 Vuex 的 login 方法
-    handleSubmit() {
-      if (this.isLoginMode) {
-        // 登录逻辑
-        fetch('http://127.0.0.1:5000/login', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json'
-          },
-          body: JSON.stringify(this.formData)
-        })
-          .then((response) => response.json())
-          .then((data) => {
-            if (data.message === '登录成功！') {
-              this.login(data.user_id) // 更新全局登录状态
-              this.$emit('login-success', data.user_id) // 通知父组件
-              this.closeModal() // 关闭弹窗
-            } else {
-              alert(data.message)
-            }
-          })
-          .catch((error) => {
-            console.error('登录失败：', error)
-          })
-      } else {
-        // 注册逻辑
-        fetch('http://127.0.0.1:5000/register', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json'
-          },
-          body: JSON.stringify(this.formData)
-        })
-          .then((response) => response.json())
-          .then((data) => {
-            if (data.message === '用户注册成功！') {
-              alert('注册成功！')
-              this.isLoginMode = true // 切换到登录模式
-            } else {
-              alert(data.message)
-            }
-          })
-          .catch((error) => {
-            console.error('注册失败：', error)
-          })
+    async handleSubmit() {
+      try {
+        if (this.isLoginMode) {
+          const response = await backendService.login(this.formData)
+          this.login(response.user_id) // 更新全局登录状态
+          this.$emit('login-success', response.user_id) // 通知父组件
+          this.closeModal()
+        } else {
+          await backendService.register(this.formData)
+          alert('注册成功！')
+          this.isLoginMode = true // 切换到登录模式
+        }
+      } catch (error) {
+        alert(error.message)
       }
     },
     toggleMode() {
@@ -104,7 +75,7 @@ export default {
     closeModal() {
       window.showMessage('先注册再使用哦！', 5000,1,true);
       this.$emit('close-modal')
-    }
+    },
   }
 }
 </script>
