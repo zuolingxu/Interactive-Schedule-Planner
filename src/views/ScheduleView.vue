@@ -54,11 +54,10 @@
         </table>
       </div>
       <div v-else>
-
         <div class="day-view">
           <h2>{{ selectedDate ? formatDate(selectedDate) : "请选择日期" }}</h2>
           <ul v-if="selectedDate" class="task-list">
-            <li v-for="(task, index) in selectedTasks" :key="index" class="task-item">
+            <li v-for="(task, index) in filteredTasks" :key="index" class="task-item">
               <div class="task-time">
                 {{ formatTime(task.time) }}
               </div>
@@ -141,7 +140,9 @@ export default {
       
       // 2. 按标签筛选
       if (this.selectedTag) {
-        tasks = tasks.filter(task => task.tags === this.selectedTag);
+        tasks = tasks.filter(task => 
+          task.tags && task.tags.includes(this.selectedTag)
+        );
       }
       
       return tasks;
@@ -221,7 +222,9 @@ export default {
     viewTasks(date) {
       this.selectedDate = date; // 保持为 Date 对象
       const dateStr = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
-      this.selectedTasks = this.tasks[dateStr] || []; // 获取完整的任务信息
+      this.selectedTasks = (this.tasks[dateStr] || []).sort((a, b) => {
+        return new Date(a.time) - new Date(b.time); // 按时间升序排列
+      });
       this.isDayView = true;
     },
     formatDate(date) {
@@ -475,6 +478,7 @@ export default {
     // 新增方法：根据标签筛选任务
     filterTasksByTag() {
       // 计算属性会自动更新，无需额外操作
+      this.$forceUpdate();
     },
   },
   mounted() {
