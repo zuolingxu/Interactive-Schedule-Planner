@@ -1,4 +1,6 @@
 ﻿<script>
+
+import {checkReminder} from "@/components/Reminder";
 export default {
   name: 'Live2DWidget',
   props: {
@@ -90,11 +92,14 @@ export default {
        }
      });
 
-
      console.log('Live2DTool changed successfully');
 
      // example of showMessage API
-     // window.showMessage('Live2D Widget is ready!',5000,0,true);
+     window.showMessage('欢迎来到日程助手!',5000,0,true);
+
+     setInterval(() => {
+       checkReminder("Default reminder message");
+     }, 6000);
    },
   },
   mounted() {

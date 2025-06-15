@@ -59,7 +59,7 @@ def login():
     data = request.json
     username = data.get('username')
     password = data.get('password')
-z
+
     conn = sqlite3.connect('schedule.db')
     cursor = conn.cursor()
     cursor.execute('SELECT id FROM users WHERE username = ? AND password = ?', (username, password))
