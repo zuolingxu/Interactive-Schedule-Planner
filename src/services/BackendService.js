@@ -8,6 +8,58 @@ class BackendService {
   }
 
   /**
+   * 用户登录
+   * @param {Object} credentials - 包含用户名和密码的对象
+   * @returns {Promise<Object>} 响应数据
+   */
+  async login(credentials) {
+    try {
+      const response = await fetch(`${this.baseUrl}/login`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(credentials),
+      });
+      
+      const data = await response.json();
+      if (data.message !== '登录成功！') {
+        throw new Error(data.message || '登录失败');
+      }
+      return data;
+    } catch (error) {
+      console.error('登录失败:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * 用户注册
+   * @param {Object} credentials - 包含用户名和密码的对象
+   * @returns {Promise<Object>} 响应数据
+   */
+  async register(credentials) {
+    try {
+      const response = await fetch(`${this.baseUrl}/register`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(credentials),
+      });
+      
+      const data = await response.json();
+      if (data.message !== '用户注册成功！') {
+        throw new Error(data.message || '注册失败');
+      }
+      return data;
+    } catch (error) {
+      console.error('注册失败:', error);
+      throw error;
+    }
+  }
+
+  /**
    * 获取用户的所有日程事件
    * @param {string} userId - 用户ID
    * @returns {Promise<Array>} 日程事件数组
