@@ -680,13 +680,13 @@ export default {
 }
 
 .example-commands {
-  background: #f0f7ff;
+  background: #6c757d;
   border-radius: 12px;
   padding: 15px;
   margin-top: 15px;
   text-align: left;
 }
-
+  
 .example-commands h4 {
   color: #4e6ef2;
   margin-bottom: 10px;
