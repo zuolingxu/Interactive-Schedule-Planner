@@ -1,6 +1,7 @@
 ﻿<script>
 
-import {checkReminder} from "@/components/Reminder";
+import {checkReminder, checkPlan, randomReminder} from "@/components/Reminder";
+import store from "@/store/index.js";
 export default {
   name: 'Live2DWidget',
   props: {
@@ -72,7 +73,12 @@ export default {
        name: "Chat",
        icon: chat_icon,
        callback: async () => {
-
+          const message = await randomReminder();
+          if (message) {
+            window.showMessage(message, 5000, 1, true);
+          } else {
+            window.showMessage('没有可用的随机消息', 5000, 1, true);
+          }
        }
      })
 
@@ -80,7 +86,17 @@ export default {
        name: "nearestPlan",
        icon: calendar_icon,
        callback: async () => {
-
+          if (!store.getters.isLoggedIn) {
+            window.showMessage('请先登录以查看日程', 5000, 1, true);
+            return;
+          }
+          const plan = await checkPlan();
+          console.log('最近的日程:', plan);
+          if (plan) {
+            window.showMessage(`最近的日程:  ${plan}`, 5000, 1, true);
+          } else {
+            window.showMessage('没有最近的日程', 5000, 1, true);
+          }
        }
      });
 
@@ -95,7 +111,7 @@ export default {
      console.log('Live2DTool changed successfully');
 
      // example of showMessage API
-     window.showMessage('欢迎来到日程助手!',5000,0,true);
+     window.showMessage('欢迎来到日程助手!',5000,1,true);
 
      setInterval(() => {
        checkReminder("Default reminder message");
