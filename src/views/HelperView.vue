@@ -1,101 +1,120 @@
-<!-- VoiceSchedule.vue -->
 <template>
-  <div class="container">
-    <div class="header">
-      <i class="fas fa-calendar-alt calendar-icon"></i>
-      <h1>语音识别日程创建系统</h1>
-      <p>通过语音命令创建日程事件，系统将自动解析时间、日期和事件内容</p>
-    </div>
+  <div class="helper-page">
+    <Sidebar :is-collapsed="isSidebarCollapsed" @toggle="toggleSidebar" />
+    <div class="content" :class="{ collapsed: isSidebarCollapsed }">
+      <ParticleBackground />
 
-    <div class="voice-section">
-      <h2><i class="fas fa-microphone"></i> 语音控制</h2>
+      <!-- 移植的语音识别系统 -->
+      <div class="voice-schedule-container">
+        <div class="container">
+          <!-- 原 voice_see.vue 的所有内容 -->
+          <div class="header">
+            <i class="fas fa-calendar-alt calendar-icon"></i>
+            <h1>语音识别日程创建系统</h1>
+            <p>通过语音命令创建日程事件，系统将自动解析时间、日期和事件内容</p>
+          </div>
 
-      <div class="visualizer">
-        <div
-            v-for="(bar, index) in bars"
-            :key="index"
-            class="bar"
-            :style="{ height: barHeight(index) + 'px' }"
-        ></div>
-      </div>
+          <div class="voice-section">
+            <h2><i class="fas fa-microphone"></i> 语音控制</h2>
 
-      <div class="voice-controls">
-        <button id="startBtn" class="btn primary" @click="startRecognition">
-          <i class="fas fa-microphone"></i> 开始语音识别
-        </button>
-        <button id="stopBtn" class="btn danger" @click="stopRecognition">
-          <i class="fas fa-stop"></i> 停止识别
-        </button>
-      </div>
+            <div class="visualizer">
+              <div
+                  v-for="(bar, index) in bars"
+                  :key="index"
+                  class="bar"
+                  :style="{ height: barHeight(index) + 'px' }"
+              ></div>
+            </div>
 
-      <div class="status" :class="statusClass">
-        <i v-if="status === 'listening'" class="fas fa-circle-notch fa-spin"></i>
-        <i v-else-if="status === 'error'" class="fas fa-exclamation-circle"></i>
-        {{ statusMessage }}
-      </div>
-    </div>
+            <div class="voice-controls">
+              <button id="startBtn" class="btn primary" @click="startRecognition">
+                <i class="fas fa-microphone"></i> 开始语音识别
+              </button>
+              <button id="stopBtn" class="btn danger" @click="stopRecognition">
+                <i class="fas fa-stop"></i> 停止识别
+              </button>
+            </div>
 
-    <div class="result-container">
-      <h3><i class="fas fa-comment-dots"></i> 识别结果</h3>
-      <div id="result">
-        <span v-if="interimTranscript" class="interim">{{ interimTranscript }}</span>
-        {{ finalTranscript || "请点击\"开始语音识别\"按钮，说出您的日程安排..." }}
-      </div>
-    </div>
+            <div class="status" :class="statusClass">
+              <i v-if="status === 'listening'" class="fas fa-circle-notch fa-spin"></i>
+              <i v-else-if="status === 'error'" class="fas fa-exclamation-circle"></i>
+              {{ statusMessage }}
+            </div>
+          </div>
 
-    <div class="event-preview" v-if="parsedEvent">
-      <h3><i class="fas fa-calendar-check"></i> 事件预览</h3>
-      <div class="event-details">
-        <div class="detail-item">
-          <div class="detail-label">事件标题</div>
-          <div class="detail-value">{{ parsedEvent.title }}</div>
+          <div class="result-container">
+            <h3><i class="fas fa-comment-dots"></i> 识别结果</h3>
+            <div id="result">
+              <span v-if="interimTranscript" class="interim">{{ interimTranscript }}</span>
+              {{ finalTranscript || "请点击\"开始语音识别\"按钮，说出您的日程安排..." }}
+            </div>
+          </div>
+
+          <div class="event-preview" v-if="parsedEvent">
+            <h3><i class="fas fa-calendar-check"></i> 事件预览</h3>
+            <div class="event-details">
+              <div class="detail-item">
+                <div class="detail-label">事件标题</div>
+                <div class="detail-value">{{ parsedEvent.title }}</div>
+              </div>
+              <div class="detail-item">
+                <div class="detail-label">日期</div>
+                <div class="detail-value">{{ parsedEvent.date }}</div>
+              </div>
+              <div class="detail-item">
+                <div class="detail-label">开始时间</div>
+                <div class="detail-value">{{ parsedEvent.startTime }}</div>
+              </div>
+              <div class="detail-item">
+                <div class="detail-label">结束时间</div>
+                <div class="detail-value">{{ parsedEvent.endTime }}</div>
+              </div>
+            </div>
+            <div class="actions">
+              <button id="createEventBtn" class="btn secondary" @click="createEvent" :disabled="isCreating">
+                <i v-if="isCreating" class="fas fa-spinner fa-spin"></i>
+                <i v-else class="fas fa-plus-circle"></i>
+                {{ isCreating ? '创建中...' : '创建日程' }}
+              </button>
+              <button id="cancelBtn" class="btn danger" @click="cancelPreview">
+                <i class="fas fa-times"></i> 取消
+              </button>
+            </div>
+          </div>
+
+          <div class="example-commands">
+            <h4><i class="fas fa-lightbulb"></i> 示例命令：</h4>
+            <ul>
+              <li>"明天下午3点开会"</li>
+              <li>"下周二上午10点到11点团队会议"</li>
+              <li>"11月15日下午2点到4点项目评审"</li>
+              <li>"周五早上9点30分与客户通话"</li>
+            </ul>
+          </div>
+
+          <div class="footer">
+            <p><i class="fas fa-info-circle"></i> 提示：请在安静环境中使用，清晰发音以获得最佳效果</p>
+          </div>
         </div>
-        <div class="detail-item">
-          <div class="detail-label">日期</div>
-          <div class="detail-value">{{ parsedEvent.date }}</div>
-        </div>
-        <div class="detail-item">
-          <div class="detail-label">开始时间</div>
-          <div class="detail-value">{{ parsedEvent.startTime }}</div>
-        </div>
-        <div class="detail-item">
-          <div class="detail-label">结束时间</div>
-          <div class="detail-value">{{ parsedEvent.endTime }}</div>
-        </div>
       </div>
-      <div class="actions">
-        <button id="createEventBtn" class="btn secondary" @click="createEvent" :disabled="isCreating">
-          <i v-if="isCreating" class="fas fa-spinner fa-spin"></i>
-          <i v-else class="fas fa-plus-circle"></i>
-          {{ isCreating ? '创建中...' : '创建日程' }}
-        </button>
-        <button id="cancelBtn" class="btn danger" @click="cancelPreview">
-          <i class="fas fa-times"></i> 取消
-        </button>
-      </div>
-    </div>
-
-    <div class="example-commands">
-      <h4><i class="fas fa-lightbulb"></i> 示例命令：</h4>
-      <ul>
-        <li>"明天下午3点开会"</li>
-        <li>"下周二上午10点到11点团队会议"</li>
-        <li>"11月15日下午2点到4点项目评审"</li>
-        <li>"周五早上9点30分与客户通话"</li>
-      </ul>
-    </div>
-
-    <div class="footer">
-      <p><i class="fas fa-info-circle"></i> 提示：请在安静环境中使用，清晰发音以获得最佳效果</p>
     </div>
   </div>
 </template>
 
 <script>
+import Sidebar from '../components/Sidebar.vue';
+import ParticleBackground from '../components/ParticleBackground.vue';
+
 export default {
-  name: 'VoiceSchedule',
+  name: 'HelperView',
+  components: {
+    Sidebar,
+    ParticleBackground
+  },
   data() {
     return {
+      isSidebarCollapsed: false,
+      // 以下是 voice_see.vue 的数据
       recognition: null,
       finalTranscript: '',
       interimTranscript: '',
@@ -130,6 +149,10 @@ export default {
     }
   },
   methods: {
+    toggleSidebar() {
+      this.isSidebarCollapsed = !this.isSidebarCollapsed;
+    },
+    // 以下是 voice_see.vue 的方法
     loadFontAwesome() {
       // 检查是否已加载
       if (document.querySelector('link[href*="font-awesome"]')) return;
@@ -355,48 +378,74 @@ export default {
 </script>
 
 <style scoped>
-/* 这里复制原文件中的所有CSS样式 */
-:global(:root) {
-  --primary: #4e6ef2;
-  --primary-dark: #3a56d1;
-  --secondary: #58cc02;
-  --light: #f8f9fa;
-  --dark: #333;
-  --gray: #6c757d;
-  --success: #28a745;
-  --danger: #dc3545;
-  --warning: #ffc107;
-  --card-shadow: 0 8px 30px rgba(0, 0, 0, 0.12);
-}
-
-* {
-  margin: 0;
-  padding: 0;
-  box-sizing: border-box;
-  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-}
-
-body {
-  background: linear-gradient(135deg, #f0f5ff, #e6f7ff);
-  min-height: 100vh;
-  padding: 20px;
+/* 原 HelperView 样式 */
+.helper-page {
   display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  color: var(--dark);
+  height: 100vh;
+  overflow: hidden;
+  color: aliceblue;
 }
 
+.content {
+  flex: 1;
+  padding: 20px;
+  transition: margin-left 0.3s ease;
+  position: relative;
+  min-height: 100vh;
+}
+
+.content.collapsed {
+  margin-left: 60px; /* 当侧边栏收起时，内容区域向左移动 */
+}
+
+.content:not(.collapsed) {
+  margin-left: 200px; /* 当侧边栏展开时，内容区域向左移动 */
+}
+
+/* 新增：语音系统容器 */
+.voice-schedule-container {
+  position: relative;
+  z-index: 10; /* 确保内容在粒子背景之上 */
+  display: flex;
+  justify-content: center;
+  padding: 20px;
+  min-height: 100%;
+}
+
+/* 移植的语音系统样式 */
 .container {
-  background: white;
+  background: rgba(255, 255, 255, 0.1); /* 半透明背景 */
+  backdrop-filter: blur(10px); /* 毛玻璃效果 */
   border-radius: 20px;
-  box-shadow: var(--card-shadow);
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.12);
   width: 90%;
   max-width: 700px;
   padding: 40px;
   text-align: center;
   position: relative;
   overflow: hidden;
+  color: white; /* 文字改为白色 */
+  border: 1px solid rgba(255, 255, 255, 0.2); /* 半透明边框 */
+}
+
+.header h1,
+.voice-section h2,
+.result-container h3,
+.event-preview h3,
+.example-commands h4,
+#result,
+.detail-label,
+.detail-value,
+.footer p,
+.example-commands li {
+  color: white;
+}
+.voice-section,
+.result-container,
+.event-preview,
+.example-commands {
+  background: rgba(0, 0, 0, 0.2); /* 深色半透明背景 */
+  border: 1px solid rgba(255, 255, 255, 0.1); /* 半透明边框 */
 }
 
 .header {
@@ -405,14 +454,13 @@ body {
 }
 
 .header h1 {
-  color: var(--primary);
   font-size: 32px;
   margin-bottom: 15px;
   font-weight: 700;
 }
 
 .header p {
-  color: var(--gray);
+  color: #6c757d;
   font-size: 18px;
   max-width: 600px;
   margin: 0 auto;
@@ -423,7 +471,7 @@ body {
   position: absolute;
   top: -20px;
   right: -10px;
-  color: var(--secondary);
+  color: #58cc02;
   font-size: 64px;
   opacity: 0.15;
   z-index: 0;
@@ -439,7 +487,7 @@ body {
 }
 
 .voice-section h2 {
-  color: var(--primary);
+  color: #4e6ef2;
   margin-bottom: 20px;
   display: flex;
   align-items: center;
@@ -455,7 +503,9 @@ body {
 }
 
 .btn {
-  border: none;
+  color: white;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  background: rgba(255, 255, 255, 0.15);
   border-radius: 50px;
   padding: 14px 30px;
   font-size: 17px;
@@ -476,30 +526,30 @@ body {
 }
 
 .btn.primary {
-  background: var(--primary);
+  background: #4e6ef2;
   color: white;
 }
 
 .btn.primary:hover {
-  background: var(--primary-dark);
+  background: rgba(58, 86, 209, 0.3);
 }
 
 .btn.secondary {
-  background: var(--secondary);
+  background: #58cc02;
   color: white;
 }
 
 .btn.secondary:hover {
-  background: #46a302;
+  background: rgba(70, 163, 2, 0.3);
 }
 
 .btn.danger {
-  background: var(--danger);
+  background: #dc3545;
   color: white;
 }
 
 .btn.danger:hover {
-  background: #bd2130;
+  background: rgba(189, 33, 48, 0.3);
 }
 
 .visualizer {
@@ -513,7 +563,7 @@ body {
 
 .bar {
   width: 10px;
-  background: var(--primary);
+  background: rgba(255, 255, 255, 0.7);
   border-radius: 5px 5px 0 0;
   transition: height 0.2s ease;
 }
@@ -530,7 +580,7 @@ body {
 }
 
 .result-container h3 {
-  color: var(--primary);
+  color: #4e6ef2;
   margin-bottom: 15px;
   display: flex;
   align-items: center;
@@ -561,14 +611,14 @@ body {
 }
 
 .status.listening {
-  background: rgba(88, 204, 2, 0.1);
-  color: var(--success);
+  background: rgba(88, 204, 2, 0.2);
+  color: #28a745;
   display: block;
 }
 
 .status.error {
-  background: rgba(220, 53, 69, 0.1);
-  color: var(--danger);
+  background: rgba(220, 53, 69, 0.2);
+  color: #dc3545;
   display: block;
 }
 
@@ -577,13 +627,12 @@ body {
   border-radius: 16px;
   padding: 20px;
   margin-top: 30px;
-  border-left: 4px solid var(--primary);
+  border-left: 4px solid #4e6ef2;
   box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05);
-  display: none;
 }
 
 .event-preview h3 {
-  color: var(--primary);
+  color: #4e6ef2;
   margin-bottom: 15px;
   border-bottom: 1px solid #eee;
   padding-bottom: 10px;
@@ -603,7 +652,7 @@ body {
 
 .detail-label {
   font-size: 14px;
-  color: var(--gray);
+  color: #6c757d;
   margin-bottom: 5px;
 }
 
@@ -621,7 +670,7 @@ body {
 
 .footer {
   margin-top: 30px;
-  color: var(--gray);
+  color: #6c757d;
   font-size: 14px;
   display: flex;
   flex-direction: column;
@@ -639,7 +688,7 @@ body {
 }
 
 .example-commands h4 {
-  color: var(--primary);
+  color: #4e6ef2;
   margin-bottom: 10px;
 }
 
@@ -671,6 +720,11 @@ body {
 
   .event-details {
     grid-template-columns: 1fr;
+  }
+
+  /* 响应式侧边栏调整 */
+  .content:not(.collapsed) {
+    margin-left: 60px;
   }
 }
 </style>
