@@ -48,7 +48,7 @@ export default {
   methods: {
     setReminder() {
       if (!this.reminderTime) {
-        alert('请选择提醒时间');
+        window.showMessage('请设置提醒时间', 3000, 1, true);
         return;
       }
 
@@ -57,6 +57,7 @@ export default {
       const body = this.reminderMessage || `您的任务 "${this.task.event_name}" 即将开始`;
 
       setReminder(targetTime, title, body);
+      window.showMessage('提醒设置成功', 3000, 1, true);
       this.close();
     },
     close() {

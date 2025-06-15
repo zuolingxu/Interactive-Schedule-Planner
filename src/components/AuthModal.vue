@@ -24,7 +24,7 @@
         <button type="button" @click="toggleMode">
           {{ isLoginMode ? '切换到注册' : '切换到登录' }}
         </button>
-        <button type="button" @click="closeModal">取消</button>
+        <button type="button" @click="closeModal(false)">取消</button>
       </form>
     </div>
   </div>
@@ -59,20 +59,23 @@ export default {
           const response = await backendService.login(this.formData)
           this.login(response.user_id) // 更新全局登录状态
           this.$emit('login-success', response.user_id) // 通知父组件
-          this.closeModal()
+          window.showMessage('登录成功！', 3000,10,true);
+          this.closeModal(true)
         } else {
           await backendService.register(this.formData)
-          alert('注册成功！')
+          window.showMessage('注册成功！', 3000,10,true);
           this.isLoginMode = true // 切换到登录模式
         }
       } catch (error) {
-        alert(error.message)
+        window.showMessage(error.message, 3000,10,true);
       }
     },
     toggleMode() {
       this.isLoginMode = !this.isLoginMode
     },
-    closeModal() {
+    closeModal(succeed = false) {
+      if(!succeed)
+        window.showMessage('先登录再使用哦！', 3000,10,false);
       this.$emit('close-modal')
     },
   }

@@ -13,7 +13,6 @@
 import Sidebar from '../components/Sidebar.vue';
 import ParticleBackground from '../components/ParticleBackground.vue';
 
-
 export default {
   name: 'HelperView',
   components: {

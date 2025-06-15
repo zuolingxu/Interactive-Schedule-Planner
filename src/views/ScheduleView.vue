@@ -340,7 +340,7 @@ export default {
       // 确保所有字段都有值
       backendService.createEvent(eventData, this.userId)
         .then(() => {
-          alert("日程创建成功！");
+          window.showMessage("日程创建成功！", 3000, 1, true);
           return this.refreshScheduleView();
         })
         .then(() => {
@@ -351,7 +351,7 @@ export default {
         })
         .catch((error) => {
           console.error("创建日程失败：", error);
-          alert("日程创建失败：" + error.message);
+          window.showMessage("日程创建失败：" + error.message, 3000, 1, true);
         });
     },
 
@@ -369,26 +369,27 @@ export default {
           this.extractUniqueTags();
         })
         .then(() => {
+          window.showMessage("日程已更新！", 3000, 1, true);
           this.closeForm();
         })
         .catch(error => {
-          console.error("更新事件失败：", error);
-          alert("更新事件失败：" + error.message);
+          console.error("更新日程失败：", error);
+          window.showMessage("更新日程失败：" + error.message, 3000, 1, true);
         });
     },
 
     deleteTask(taskId) {
-      if (!confirm("确定要删除该事件吗？")) return;
+      if (!confirm("确定要删除该日程吗？")) return;
       backendService.deleteEvent(taskId)
         .then(() => {
           return this.refreshScheduleView();
         })
         .then(() => {
-          alert("事件已删除！");
+          window.showMessage("日程已删除！", 3000, 1, true);
         })
         .catch(error => {
-          console.error("删除事件失败：", error);
-          alert("删除失败：" + error.message);
+          console.error("删除日程失败：", error);
+          window.showMessage("删除日程失败：" + error.message, 3000, 1, true);
         });
     },
     // 编辑卡片

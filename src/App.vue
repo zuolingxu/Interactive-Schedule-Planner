@@ -3,6 +3,7 @@
 </script>
 
 <template>
+  <Live2DWidget/>
   <div id="app">
     <router-view />
     <AuthModal
@@ -12,14 +13,12 @@
       @close-modal="closeAuthModal"
     />
   </div>
-  <Live2DWidget />
 </template>
 
 <script>
 import { mapGetters, mapActions } from 'vuex'
 import AuthModal from './components/AuthModal.vue'
 import Live2DWidget from './components/VirtualImage.vue';
-
 export default {
   name: 'App',
   components: {
@@ -42,5 +41,14 @@ export default {
 </script>
 
 <style>
-/* 全局样式 */
+    /* 全局样式 */
+  .Live2DWidget {
+    z-index: 9999; /* 确保组件在最上层 */
+    position: fixed;
+  }
+
+  #app {
+    z-index: 1;
+    position: relative;
+  }
 </style>

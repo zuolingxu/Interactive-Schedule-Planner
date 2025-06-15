@@ -11,6 +11,7 @@
 	position: fixed;
 	transition: margin-left 1s;
 	width: 60px;
+	z-index: 9999;
 }
 
 #waifu-toggle.waifu-toggle-active {
@@ -106,14 +107,14 @@
 #waifu-tool svg {
 	cursor: pointer;
 	display: block;
-	fill: #7b8c9d;
-	height: 25px;
+	fill: #c4c4c4;
+	height: 30px;
 	transition: fill .3s;
 	position: relative;
 }
 
 #waifu-tool svg:hover {
-	fill: #0684bd;
+	fill: #0e60c9;
 }
 
 #waifu-tool svg:hover::after {

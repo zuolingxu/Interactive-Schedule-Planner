@@ -28,8 +28,7 @@ export default {
         { name: '主页', route: '/', icon: 'fas fa-home' },
         { name: '日程表', route: '/schedule', icon: 'fas fa-calendar-alt' },
         { name: '专注模式', route: '/focus', icon: 'fas fa-bullseye' },
-        { name: '语音助手', route: '/assistant', icon: 'fas fa-robot' },
-        { name: '小助手', route: '/helper', icon: 'fas fa-hands-helping' },
+        { name: '语音助手', route: '/helper', icon: 'fas fa-hands-helping' },
       ]
     };
   },

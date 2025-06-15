@@ -26,7 +26,7 @@ const routes = [
     component: FocusView
   },
   {
-    path: '/helper', // 新增小助手模块路由
+    path: '/helper', // 语音助手模块
     name: 'Helper',
     component: HelperView
   },
