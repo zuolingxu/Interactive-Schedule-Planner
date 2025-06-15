@@ -1,0 +1,82 @@
+﻿<script>
+export default {
+ name: 'Live2DWidget',
+ props: {
+   live2dPath: {
+     type: String,
+     default: '/src/components/live2d-widget/',
+   }
+ },
+ methods: {
+   loadExternalResource(url, type) {
+    return new Promise((resolve, reject) => {
+      let tag;
+
+      if (type === 'css') {
+        tag = document.createElement('link');
+        tag.rel = 'stylesheet';
+        tag.href = url;
+      } else if (type === 'js') {
+        tag = document.createElement('script');
+        tag.type = 'module';
+        tag.src = url;
+      }
+
+      if (tag) {
+        tag.onload = () => resolve(url);
+        tag.onerror = () => reject(url);
+        document.head.appendChild(tag);
+      }
+    });
+   },
+   async initLive2D() {
+     const OriginalImage = window.Image;
+     window.Image = function (...args) {
+       const img = new OriginalImage(...args);
+       img.crossOrigin = 'anonymous';
+       return img;
+     };
+     window.Image.prototype = OriginalImage.prototype;
+
+     await Promise.all([
+       this.loadExternalResource(this.live2dPath + 'waifu.css', 'css'),
+       this.loadExternalResource(this.live2dPath + 'waifu-tips.js', 'js'),
+     ]);
+     console.log('Live2D Widget resources loaded successfully');
+     const instances = await initWidget({
+       modelPath: '/src/components/models/22',
+       modelSetting: 'index.json',
+       cubism2Path: this.live2dPath + 'live2d.min.js',
+       cubism5Path: 'https://cubism.live2d.com/sdk-web/cubismcore/live2dcubismcore.min.js',
+       tools: ['hitokoto', 'asteroids', 'switch-model', 'switch-texture', 'photo', 'info', 'quit'],
+       drag: false,
+     });
+     console.log('Live2D Widget resources loaded successfully');
+
+     // example of changeTool API
+     window.changeTool(instances.ToolsManager, 1313, {
+       name: "tester",
+       icon: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 384 512"><!--! Font Awesome Free 6.7.2 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2024 Fonticons, Inc. --><path d="M342.6 150.6c12.5-12.5 12.5-32.8 0-45.3s-32.8-12.5-45.3 0L192 210.7 86.6 105.4c-12.5-12.5-32.8-12.5-45.3 0s-12.5 32.8 0 45.3L146.7 256 41.4 361.4c-12.5 12.5-12.5 32.8 0 45.3s32.8 12.5 45.3 0L192 301.3 297.4 406.6c12.5 12.5 32.8 12.5 45.3 0s12.5-32.8 0-45.3L237.3 256 342.6 150.6z"/></svg>',
+       callback: async () => { }
+     });
+
+     // window.addTool(instances.ToolsManager, 1,{
+     //   name: "tester",
+     //   icon: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 384 512"><!--! Font Awesome Free 6.7.2 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2024 Fonticons, Inc. --><path d="M342.6 150.6c12.5-12.5 12.5-32.8 0-45.3s-32.8-12.5-45.3 0L192 210.7 86.6 105.4c-12.5-12.5-32.8-12.5-45.3 0s-12.5 32.8 0 45.3L146.7 256 41.4 361.4c-12.5 12.5-12.5 32.8 0 45.3s32.8 12.5 45.3 0L192 301.3 297.4 406.6c12.5 12.5 32.8 12.5 45.3 0s12.5-32.8 0-45.3L237.3 256 342.6 150.6z"/></svg>',
+     //   callback: async () => { }
+     // })
+
+     // window.removeTool(instances.ToolsManager, 2);
+
+     console.log('Live2DTool changed successfully');
+
+     // example of showMessage API
+     window.showMessage('Live2D Widget is ready!',5000,0,true);
+
+   },
+ },
+ mounted() {
+   this.initLive2D();
+ },
+};
+</script>

@@ -1,3 +1,7 @@
+<script setup>
+
+</script>
+
 <template>
   <div id="app">
     <router-view />
@@ -8,16 +12,19 @@
       @close-modal="closeAuthModal"
     />
   </div>
+  <Live2DWidget />
 </template>
 
 <script>
 import { mapGetters, mapActions } from 'vuex'
 import AuthModal from './components/AuthModal.vue'
+import Live2DWidget from './components/VirtualImage.vue';
 
 export default {
   name: 'App',
   components: {
-    AuthModal
+    AuthModal,
+    Live2DWidget
   },
   computed: {
     ...mapGetters(['showAuthModal']) // 映射 Vuex 的 showAuthModal 状态

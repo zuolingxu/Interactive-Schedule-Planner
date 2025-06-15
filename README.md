@@ -60,6 +60,7 @@ npm run build
 npm run dev
 ```
 
+注：本项目使用的模型仅用于展示。
 ### 后端 python sqlite3
 ```bash
 pip install flask flask-cors
