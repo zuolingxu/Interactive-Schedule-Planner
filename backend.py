@@ -150,4 +150,4 @@ def update_event(event_id):
 
 if __name__ == '__main__':
     init_db()  # 初始化数据库
-    app.run(debug=True)
+    app.run(host='0.0.0.0', port=5000)

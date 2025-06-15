@@ -84,51 +84,61 @@ export default {
       this.particlesInstance = instance;
       this.startParticleAnimation();
       
-      // 监听粒子数量变化(用于检测点击增加)
-      instance.particles.onCountChange((count) => {
+      instance.particles.onCountChange = (count) => {
         if (count > this.currentMaxParticles) {
           this.currentMaxParticles = count;
         }
-      });
+      };
     },
     startParticleAnimation() {
       if (this.animationInterval) {
         clearInterval(this.animationInterval);
       }
       
-      let direction = -1;
       let currentParticles = this.currentMaxParticles;
+      const decreaseInterval = 1000; // 每次减少的间隔时间(毫秒)
+      let isDecreasing = true;
       
       this.animationInterval = setInterval(() => {
-        // 更新粒子数量
-        currentParticles += direction * 2;
-        
-        // 确保不低于最小值，不高于当前最大值
-        if (currentParticles <= this.minParticles) {
-          currentParticles = this.minParticles;
-          direction = 1;
-        } else if (currentParticles >= this.currentMaxParticles) {
-          currentParticles = this.currentMaxParticles;
-          direction = -1;
-          
-          // 如果当前最大值比基础值大，则缓慢恢复到基础值
-          if (this.currentMaxParticles > this.baseMaxParticles) {
-            this.currentMaxParticles = Math.max(
-              this.baseMaxParticles,
-              this.currentMaxParticles - 1
-            );
+        if (isDecreasing) {
+          // 每次只减少1个粒子
+          if (currentParticles > this.minParticles) {
+            currentParticles--;
+          } else {
+            // 达到最小值后开始增加
+            isDecreasing = false;
+          }
+        } else {
+          // 增加到最大值
+          if (currentParticles < this.currentMaxParticles) {
+            currentParticles++;
+          } else {
+            // 达到最大值后开始减少
+            isDecreasing = true;
+            
+            // 如果当前最大值比基础值大，则缓慢恢复到基础值
+            if (this.currentMaxParticles > this.baseMaxParticles) {
+              this.currentMaxParticles = Math.max(
+                this.baseMaxParticles,
+                this.currentMaxParticles - 1
+              );
+            }
           }
         }
         
+        // 更新粒子数量
         if (this.particlesInstance) {
-          this.particlesInstance.particles.setQuantity(currentParticles);
+          this.particlesInstance.options.particles.number.value = currentParticles;
         }
-      }, 100);
+      }, decreaseInterval);
     }
   },
   beforeDestroy() {
     if (this.animationInterval) {
       clearInterval(this.animationInterval);
+    }
+    if (this.particlesInstance) {
+      this.particlesInstance.destroy();
     }
   }
 }

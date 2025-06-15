@@ -9,6 +9,12 @@
           <span class="slider">{{ isDayView ? "返回" : "月视图" }}</span>
         </label>
         <button @click="handleCreateEvent">新建日程</button>
+        <div v-if="isDayView" class="tag-filter">
+          <select v-model="selectedTag" @change="filterTasksByTag">
+            <option value="">所有标签</option>
+            <option v-for="tag in uniqueTags" :key="tag" :value="tag">{{ tag }}</option>
+          </select>
+        </div>
       </div>
       <div v-if="!isDayView">
         <div class="year-controls">
@@ -31,7 +37,7 @@
                 v-for="day in week"
                 :key="day.date"
                 :class="{ 
-                  currentDay: isToday(day.date),
+                  'current-day': isToday(day.date),
                   'other-month': !day.isCurrentMonth
                 }"
                 @click="viewTasks(day.date)"
@@ -48,6 +54,7 @@
         </table>
       </div>
       <div v-else>
+
         <div class="day-view">
           <h2>{{ selectedDate ? formatDate(selectedDate) : "请选择日期" }}</h2>
           <ul v-if="selectedDate" class="task-list">
@@ -119,10 +126,26 @@ export default {
       formData: {}, // 表单初始数据
       isAuthModalVisible: false, // 控制注册或登录弹窗显示
       tasks: {}, // 从后端加载的任务数据
+      selectedTag: '', // 当前选中的标签
+      uniqueTags: [],  // 存储所有不重复的标签
     };
   },
   computed: {
     ...mapGetters(["isLoggedIn", "userId"]), // 映射 Vuex 的登录状态和用户 ID
+    //按时间排序并筛选后的任务
+    filteredTasks() {
+      let tasks = [...this.selectedTasks];
+      
+      // 1. 按时间从小到大排序
+      tasks.sort((a, b) => new Date(a.time) - new Date(b.time));
+      
+      // 2. 按标签筛选
+      if (this.selectedTag) {
+        tasks = tasks.filter(task => task.tags === this.selectedTag);
+      }
+      
+      return tasks;
+    },
   },
   methods: {
     ...mapActions(["login"]), // 映射 Vuex 的 login 方法
@@ -312,6 +335,7 @@ export default {
           });
           this.tasks = tasksByDate;
           this.generateCalendar();
+          this.extractUniqueTags(); 
           return data; // 返回数据以便链式调用
         })
         .catch(error => {
@@ -320,6 +344,14 @@ export default {
         });
     },
     createEvent(eventData) {
+      // 确保所有字段都有值
+      const processedData = {
+        event_name: eventData.event_name || "",
+        time: eventData.time || `${this.formatDateKey(new Date())}T00:00:00`,
+        priority: eventData.priority || "2",
+        tags: eventData.tags || "无", // 确保tags不为null/undefined
+        user_id: this.userId
+      };
       fetch("http://127.0.0.1:5000/events", {
         method: "POST",
         headers: {
@@ -338,6 +370,9 @@ export default {
           } else {
             throw new Error(data.message || "创建失败");
           }
+        })
+        .then(() => {
+          this.extractUniqueTags(); // 刷新标签列表
         })
         .then(() => {
           this.closeForm();
@@ -363,7 +398,14 @@ export default {
         console.error("缺少必要信息");
         return;
       }
-
+      // 保持原有时间格式，不转换
+      const processedData = {
+        event_name: task.event_name || "",
+        time: task.time, // 直接使用原有时间，不转换
+        priority: task.priority || "2",
+        tags: task.tags || "无",
+        user_id: this.userId
+      };
       fetch(`http://127.0.0.1:5000/events/${task.id}`, {
         method: "PUT",
         headers: {
@@ -381,6 +423,9 @@ export default {
         .then(data => {
           if (data.message !== "事件更新成功！") throw new Error(data.message);
           return this.refreshScheduleView(); // 使用改进后的刷新方法
+        })
+        .then(() => {
+          this.extractUniqueTags(); // 刷新标签列表
         })
         .then(() => {
           this.closeForm();
@@ -411,7 +456,26 @@ export default {
           console.error("删除事件失败：", error);
           alert("删除失败：" + error.message);
         });
-    }
+    },
+    // 提取所有唯一标签
+    extractUniqueTags() {
+      const tags = new Set();
+      // 遍历所有日期的任务
+      Object.values(this.tasks).forEach(dayTasks => {
+        dayTasks.forEach(task => {
+          // 确保标签存在且不为空
+          if (task.tags && task.tags.trim() !== '') {
+            tags.add(task.tags.trim());
+          }
+        });
+      });
+      this.uniqueTags = Array.from(tags).sort(); // 转为数组并排序
+    },
+  
+    // 新增方法：根据标签筛选任务
+    filterTasksByTag() {
+      // 计算属性会自动更新，无需额外操作
+    },
   },
   mounted() {
     if (this.isLoggedIn) {
@@ -679,6 +743,18 @@ button:hover {
   font-size: 1.5em;
   margin-bottom: 20px;
   color: #fff;
+}
+
+.tag-filter {
+  margin-left: 20px;
+}
+
+.tag-filter select {
+  padding: 8px 12px;
+  border-radius: 5px;
+  background-color: #333;
+  color: white;
+  border: 1px solid #555;
 }
 
 </style>
