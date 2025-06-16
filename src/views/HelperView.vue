@@ -381,7 +381,7 @@ export default {
         const eventData = {
           event_name: this.parsedEvent.title,
           time: `${this.parsedEvent.date}T${this.parsedEvent.startTime}`,
-          tags: "通过语音识别创建的事件",
+          tags: "",
           priority: 2,
         };
 
