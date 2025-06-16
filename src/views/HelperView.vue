@@ -86,9 +86,6 @@
             <h4><i class="fas fa-lightbulb"></i> 示例命令：</h4>
             <ul>
               <li>"明天下午3点开会"</li>
-              <li>"下周二上午10点到11点团队会议"</li>
-              <li>"11月15日下午2点到4点项目评审"</li>
-              <li>"周五早上9点30分与客户通话"</li>
             </ul>
           </div>
 
@@ -104,6 +101,9 @@
 <script>
 import Sidebar from '../components/Sidebar.vue';
 import ParticleBackground from '../components/ParticleBackground.vue';
+import Store from '@/store/index'
+import backendService from "@/services/BackendService";
+import OpenAI from "openai";
 
 export default {
   name: 'HelperView',
@@ -254,7 +254,7 @@ export default {
       return this.status === 'listening' ? this.bars[index] : 0;
     },
 
-    parseSpeechResult(text) {
+    async parseSpeechResult(text) {
       // 在实际应用中，这里应该使用更复杂的NLP处理
       const today = new Date();
 
@@ -265,35 +265,93 @@ export default {
       // 提取日期信息
       let eventDate = today;
       let eventTitle = text;
-
-      // 简化处理日期
-      if (text.includes('明天')) {
-        eventDate = new Date(today);
-        eventDate.setDate(today.getDate() + 1);
-        eventTitle = eventTitle.replace('明天', '');
-      } else if (text.includes('后天')) {
-        eventDate = new Date(today);
-        eventDate.setDate(today.getDate() + 2);
-        eventTitle = eventTitle.replace('后天', '');
-      } else if (text.includes('下周')) {
-        eventDate = new Date(today);
-        eventDate.setDate(today.getDate() + 7);
-        eventTitle = eventTitle.replace('下周', '');
-      }
-
-      // 处理时间
       let startTime = "10:00";
       let endTime = "11:00";
 
-      if (timeMatch) {
-        const hour = parseInt(timeMatch[1]);
-        const minute = timeMatch[2] ? parseInt(timeMatch[2]) : 0;
+      // 使用大语言模型API解析语音文本
+      try {
+        const openai = await new OpenAI(
+            {
+              apiKey: process.env.DASHSCOPE_API_KEY,
+              baseURL: "https://dashscope.aliyuncs.com/compatible-mode/v1"
+            }
+        );
 
-        startTime = `${hour}:${minute.toString().padStart(2, '0')}`;
-        endTime = `${hour + 1}:${minute.toString().padStart(2, '0')}`;
+        console.log(openai.apiKey);
 
-        // 从标题中移除时间部分
-        eventTitle = eventTitle.replace(timeMatch[0], '').trim();
+        const completion = await openai.chat.completions.create({
+          model: "qwen-plus",
+          messages: [
+            { role: "system", content: "你是一个解析自然语言为机器语言的助手，接下来的对话中你会受到一段自然语言，你将根据这段文字创建一个日程，你只能返回json，" +
+                  `请将这段自然语言解析为：{"date": "YYYY-MM-DD", "title": "事件标题", "startTime": "HH:MM", "endTime": "HH:MM"}的形式
+                  另外，现在的时间是${this.formatDate(today)}，请确保解析的时间在当前时间之后。` },
+            { role: "user", content: text }
+          ],
+        });
+
+        console.log("解析结果:", completion.choices[0].message.content);
+        const result = JSON.parse(completion.choices[0].message.content.replace(/```(?:json|javascript)?|```/g, '').trim());
+        eventTitle = result.title || "未命名事件";
+        const startTime = result.startTime || "10:00";
+        const endTime = result.endTime || "11:00";
+
+        // 创建预览对象
+        this.parsedEvent = {
+          title: eventTitle,
+          date: eventDate,
+          startTime: startTime,
+          endTime: endTime
+        };
+        console.log("解析后的事件:", this.parsedEvent);
+
+      } catch (error) {
+        // 简化处理日期
+        if (text.includes('明天')) {
+          eventDate = new Date(today);
+          eventDate.setDate(today.getDate() + 1);
+          eventTitle = eventTitle.replace('明天', '');
+        } else if (text.includes('后天')) {
+          eventDate = new Date(today);
+          eventDate.setDate(today.getDate() + 2);
+          eventTitle = eventTitle.replace('后天', '');
+        } else if (text.includes('下周')) {
+          eventDate = new Date(today);
+          eventDate.setDate(today.getDate() + 7);
+          eventTitle = eventTitle.replace('下周', '');
+        } else if (text.includes('下个月')) {
+          eventDate = new Date(today);
+          eventDate.setMonth(today.getMonth() + 1);
+          eventTitle = eventTitle.replace('下个月', '');
+        } else if (/星期[一二三四五六日天]/.test(text)) {
+          const weekDays = {
+            '星期一': 1,
+            '星期二': 2,
+            '星期三': 3,
+            '星期四': 4,
+            '星期五': 5,
+            '星期六': 6,
+            '星期日': 0,
+            '星期天': 0
+          };
+          const matchedDay = Object.keys(weekDays).find(day => text.includes(day));
+          if (matchedDay) {
+            eventDate = new Date(today);
+            eventDate.setDate(today.getDate() + ((weekDays[matchedDay] - today.getDay() + 7) % 7));
+            eventTitle = eventTitle.replace(matchedDay, '');
+          }
+        }
+
+        if (timeMatch) {
+          const hour = parseInt(timeMatch[1]);
+          const minute = timeMatch[2] ? parseInt(timeMatch[2]) : 0;
+
+          startTime = `${String(hour).padStart(2, "0")}:${minute.toString().padStart(2, '0')}`;
+          endTime = `${String(hour + 1).padStart(2, "0")}:${minute.toString().padStart(2, '0')}`;
+
+          // 从标题中移除时间部分
+          eventTitle = eventTitle.replace(timeMatch[0], '').trim();
+        }
+
       }
 
       // 创建预览对象
@@ -316,39 +374,30 @@ export default {
       if (!this.parsedEvent) return;
 
       try {
+        console.log("创建日程事件:", this.parsedEvent);
         this.isCreating = true;
-
-        // 获取当前用户ID（实际应用中应从认证系统获取）
-        const userId = "current_user_id"; // 替换为实际用户ID
 
         // 准备事件数据
         const eventData = {
-          title: this.parsedEvent.title,
-          start: `${this.parsedEvent.date}T${this.parsedEvent.startTime}:00`,
-          end: `${this.parsedEvent.date}T${this.parsedEvent.endTime}:00`,
-          description: "通过语音识别创建的事件"
+          event_name: this.parsedEvent.title,
+          time: `${this.parsedEvent.date}T${this.parsedEvent.startTime}`,
+          tags: "",
+          priority: 2,
         };
 
+        console.log("准备创建的事件数据:", eventData);
+
         // 调用后端服务创建事件
-        const response = await fetch(`${this.baseUrl}/events`, {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            ...eventData,
-            userId
-          }),
-        });
-
-        const data = await response.json();
-
-        if (data.message !== "事件添加成功！") {
-          throw new Error(data.message || "创建失败");
-        }
-
-        this.status = 'listening';
-        this.statusMessage = '日程创建成功！';
+        backendService.createEvent(eventData, Store.getters.userId)
+            .then(() => {
+              window.showMessage("日程创建成功！", 3000, 1, true);
+              this.statusMessage = '日程创建成功！';
+            })
+            .catch((error) => {
+              console.error("创建日程失败：", error);
+              window.showMessage("日程创建失败：" + error.message, 3000, 1, true);
+              this.statusMessage = '日程创建失败！';
+            });
 
         // 重置界面
         setTimeout(() => {
@@ -647,17 +696,19 @@ export default {
 
 .detail-item {
   display: flex;
+  color: #181818;
   flex-direction: column;
 }
 
 .detail-label {
   font-size: 14px;
-  color: #6c757d;
+  color: rgb(30, 27, 27);
   margin-bottom: 5px;
 }
 
 .detail-value {
   font-size: 16px;
+  color: rgb(30, 27, 27);;
   font-weight: 500;
 }
 
@@ -680,7 +731,7 @@ export default {
 }
 
 .example-commands {
-  background: #f0f7ff;
+  background: #6c757d;
   border-radius: 12px;
   padding: 15px;
   margin-top: 15px;
