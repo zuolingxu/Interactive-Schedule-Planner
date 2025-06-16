@@ -552,7 +552,7 @@ input:checked + .slider {
 }
 
 .calendar {
-  width: 100%;
+  width: 900px;
   border-collapse: collapse;
   margin: 20px 0;
   color: white; /* 表格字体为白色 */

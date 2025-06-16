@@ -86,8 +86,9 @@ class BackendService {
    */
   async createEvent(eventData, userId) {
     try {
+      console.log(eventData)
       const processedData = this._prepareEventData(eventData, userId);
-      
+      console.log("Processed Event Data:", processedData);
       const response = await fetch(`${this.baseUrl}/events`, {
         method: "POST",
         headers: {
